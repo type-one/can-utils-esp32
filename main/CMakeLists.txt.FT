@@ -1,0 +1,24 @@
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Local header files here ONLY
+file(GLOB_RECURSE TARGET_H
+    *.h
+    *.hpp
+    *.inl
+)
+
+# Local source files here
+
+set(TARGET_CAN_UTILS_SRC
+        dbc/dbc_parser.cpp
+        v2c/v2c_transcoder.cpp
+)
+
+set(TARGET_SRC
+        example/example.cpp
+        "${TARGET_CAN_UTILS_SRC}"  
+)
+
+set(TARGET_INCLUDE_DIR .)
+
+idf_component_register(SRCS "${TARGET_SRC}" "${TARGET_H}" INCLUDE_DIRS "${TARGET_INCLUDE_DIR}")

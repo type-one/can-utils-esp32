@@ -1,0 +1,6 @@
+# File: tests/.clang-tidy
+
+# Disable all checks in this folder.
+Checks: '-*,clang-diagnostic-*,clang-analyzer-*'
+WarningsAsErrors: ''
+HeaderFilterRegex: ''

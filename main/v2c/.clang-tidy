@@ -1,0 +1,6 @@
+# File: tests/.clang-tidy
+
+# Disable all checks in this folder.
+Checks: '-*,modernize-use-nullptr'
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
