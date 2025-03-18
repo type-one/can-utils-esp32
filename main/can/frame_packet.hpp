@@ -8,7 +8,7 @@
 ===========================================================================================*/
 
 //-----------------------------------------------------------------------------//
-// ESP32 C++ DBC/CAN parser - Spare time development for fun                   //
+// ESP32 C++ DBC/CAN parser - Spare time mod and FreeRTOS port for fun         //
 // Laurent Lardinois https://be.linkedin.com/in/laurentlardinois               //
 //                                                                             //
 // https://github.com/type-one/can-utils-esp32                                 //
