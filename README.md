@@ -36,7 +36,11 @@ CONFIG_COMPILER_CXX_RTTI=y
 
 idf.py build
 
+It takes some time for the first compilation as it has to fetch a subset of the C++ Boost Library.
+
 idf.py flash monitor
+
+You should see the example running through your serial connection.
 
 For an ESP32 classic, just type idf.py set-target esp32 above instead 
 

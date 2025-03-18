@@ -404,14 +404,14 @@ include_directories(
     "${BOOST_TYPEOF_INCLUDE_PATH}"
 )
 
-add_library(framework_modules STATIC "${TARGET_H}" "${TARGET_SRC}")
+add_library(can_utils_modules STATIC "${TARGET_H}" "${TARGET_SRC}")
 
 add_executable(can_utils_esp32 example/example.cpp)   
 
 if(LINUX) 
-    target_link_libraries(can_utils_esp32 framework_modules -lm -lpthread)
+    target_link_libraries(can_utils_esp32 can_utils_modules -lm -lpthread)
 elseif(WIN32)
-    target_link_libraries(can_utils_esp32 framework_modules)
+    target_link_libraries(can_utils_esp32 can_utils_modules)
 endif()
 
 ################################
@@ -456,7 +456,7 @@ set(TEST_SOURCES
 add_executable(run_tests ${TEST_SOURCES})
 
 # Link Google Test and pthread library
-target_link_libraries(run_tests framework_modules gtest gtest_main pthread)
+target_link_libraries(run_tests can_utils_modules gtest gtest_main pthread)
 
 # Add a custom target to run the tests
 add_custom_target(
