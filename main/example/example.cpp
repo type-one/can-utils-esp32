@@ -7,16 +7,16 @@
 // A C++ DBC file parser, and a CAN telemetry tool, adapted for                //
 // ESP32 micro-controller forked from MIREO version at                         //
 // https://github.com/mireo/can-utils                                          //
-//-----------------------------------------------------------------------------// 
+//-----------------------------------------------------------------------------//
 
 // Example modified from https://github.com/mireo/can-utils
 /*==========================================================================================
-	Copyright (c) 2001-2023 Mireo, EU
+    Copyright (c) 2001-2023 Mireo, EU
 
-	Extremely efficient DBC file format parser, built on top of Boost Spirit.
+    Extremely efficient DBC file format parser, built on top of Boost Spirit.
 
-	Strictly follows the grammar rules from the last updated DBC specification available at
-	http://mcu.so/Microcontroller/Automotive/dbc-file-format-documentation_compress.pdf
+    Strictly follows the grammar rules from the last updated DBC specification available at
+    http://mcu.so/Microcontroller/Automotive/dbc-file-format-documentation_compress.pdf
 ===========================================================================================*/
 
 #include <array>
@@ -90,9 +90,9 @@ void print_frames(const can::frame_packet& fp, can::v2c_transcoder& transcoder, 
 
         auto msg = transcoder.find_message(frame.can_id);
         for (const auto& sig : msg->signals(frame_data))
-		{
+        {
             std::printf("  %s: %" PRId64 " \n", sig.name().c_str(), static_cast<std::int64_t>(sig.decode(frame_data)));
-		}
+        }
     }
 }
 
@@ -158,7 +158,7 @@ BA_ "TxGroupFreq" BO_ 6 "EnergyGroupTxFreq";
 void test_dbc_can()
 {
     LOG_INFO("-- DBC CAN --");
-    print_stats();   
+    print_stats();
 
     can::v2c_transcoder transcoder;
 
@@ -166,9 +166,9 @@ void test_dbc_can()
 
     bool parsed = can::parse_dbc(example_dbc, std::ref(transcoder));
     if (!parsed)
-	{
+    {
         return;
-	}
+    }
 
     auto end = std::chrono::system_clock::now();
 
@@ -186,9 +186,9 @@ void test_dbc_can()
         auto fp = transcoder.transcode(std::chrono::system_clock::now(), frame);
 
         if (fp.empty())
-		{
+        {
             continue;
-		}
+        }
 
         // Send the aggregated frame_packet to a remote server, store it locally, or process it.
         // This example just prints it to stdout.
