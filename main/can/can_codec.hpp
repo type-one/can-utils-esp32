@@ -15,7 +15,7 @@
 // A C++ DBC file parser, and a CAN telemetry tool, adapted for                //
 // ESP32 micro-controller, forked and modified from MIREO version at           //
 // https://github.com/mireo/can-utils                                          //
-//-----------------------------------------------------------------------------//  
+//-----------------------------------------------------------------------------//
 
 #pragma once
 
@@ -24,14 +24,14 @@
 #include <type_traits>
 #include <variant>
 
-
 #include "boost/endian.hpp"
-
 #include "can_kernel.hpp"
-
 namespace can
 {
-
+    /**
+     * @class sig_codec
+     * @brief A class to encode and decode CAN bus signals.
+     */
     class sig_codec
     {
         using order = boost::endian::order;
@@ -41,141 +41,84 @@ namespace can
         unsigned _byte_pos, _bit_pos, _last_bit_pos, _nbytes;
 
     public:
-        sig_codec(unsigned sb, unsigned bs, char bo, char st)
-            : _start_bit(sb)
-            , _bit_size(bs)
-            , _byte_order(bo == '0' ? order::big : order::little)
-            , _sign_type(st)
-        {
-            _byte_pos = _start_bit / 8;
-            _bit_pos = _byte_order == order::little ? _start_bit % 8 : _start_bit - _byte_pos * 8;
-            _last_bit_pos = _byte_order == order::little ? (_start_bit + _bit_size - 1) % 8
-                                                         : (7 - _start_bit % 8) + _bit_size - 64;
-            _nbytes = _byte_order == order::little ? (_bit_size + _bit_pos + 7) / 8
-                                                   : (_bit_size + (7 - _start_bit % 8) + 7) / 8;
-        }
+        /**
+         * @brief Constructor for sig_codec.
+         * @param sb Start bit.
+         * @param bs Bit size.
+         * @param bo Byte order ('0' for big endian, '1' for little endian).
+         * @param st Sign type ('-' for signed, '+' for unsigned).
+         */
+        sig_codec(unsigned sb, unsigned bs, char bo, char st);
 
-        std::uint64_t operator()(const std::uint8_t* data) const
-        {
-            std::uint64_t val = _byte_order == order::little ? boost::endian::load_little_u64(data + _byte_pos)
-                                                             : boost::endian::load_big_u64(data + _byte_pos);
+        /**
+         * @brief Decode the CAN signal from raw data.
+         * @param data Pointer to the raw data.
+         * @return Decoded signal value.
+         */
+        std::uint64_t operator()(const std::uint8_t* data) const;
 
-            if (_nbytes > 8)
-            {
-                std::uint64_t ninth_byte = data[_byte_pos + 8];
-                if (_byte_order == order::little)
-                {
-                    val >>= _bit_pos;
-                    ninth_byte &= (1ull << (_last_bit_pos + 1)) - 1;
-                    ninth_byte <<= 8 - _bit_pos + 7 * 8;
-                }
-                else
-                {
-                    val &= (1ull << (_start_bit % 8 + 7 * 8) << 1ull) - 1;
-                    val <<= _last_bit_pos;
-                    ninth_byte >>= 8 - _last_bit_pos;
-                }
-                val |= ninth_byte;
-            }
-            else
-            {
-                std::uint64_t last_bit_pos = (8 * (7 - (_bit_pos / 8))) + (_start_bit % 8) - (_bit_size - 1);
-                val = _byte_order == order::little ? val >> _bit_pos : val >> last_bit_pos;
-                val &= (1ull << (_bit_size - 1) << 1ull) - 1;
-            }
+        /**
+         * @brief Encode the CAN signal to raw data.
+         * @param raw The raw signal value.
+         * @param buffer Pointer to the buffer where the encoded data will be stored.
+         */
+        void operator()(std::uint64_t raw, void* buffer) const;
 
-            if (_sign_type == '-')
-            {
-                std::uint64_t mask_signed = ~((1ull << (_bit_size - 1ull)) - 1);
-                if (val & mask_signed)
-				{
-                    val |= mask_signed;
-				}
-            }
-
-            return val;
-        }
-
-        void operator()(std::uint64_t raw, void* buffer) const
-        {
-            char* b = reinterpret_cast<char*>(buffer);
-
-            if (_byte_order == order::big)
-            {
-                std::uint64_t src = _start_bit;
-                std::uint64_t dst = _bit_size - 1;
-                for (std::uint64_t i = 0; i < _bit_size; i++)
-                {
-                    if (raw & (1ull << dst))
-                    {
-                        b[src / 8] |= 1ull << (src % 8);
-                    }
-                    else
-                    {
-                        b[src / 8] &= ~(1ull << (src % 8));
-                    }
-                    if ((src % 8) == 0)
-                    {
-                        src += 15;
-                    }
-                    else
-                    {
-                        src--;
-                    }
-                    dst--;
-                }
-            }
-            else
-            {
-                std::uint64_t src = _start_bit;
-                std::uint64_t dst = 0;
-                for (std::uint64_t i = 0; i < _bit_size; i++)
-                {
-                    if (raw & (1ull << dst))
-                    {
-                        b[src / 8] |= 1ull << (src % 8);
-                    }
-                    else
-                    {
-                        b[src / 8] &= ~(1ull << (src % 8));
-                    }
-                    src++;
-                    dst++;
-                }
-            }
-        }
-
-        char sign_type() const
-        {
-            return _sign_type;
-        }
+        /**
+         * @brief Get the sign type of the signal.
+         * @return Sign type ('-' for signed, '+' for unsigned).
+         */
+        char sign_type() const;
     };
 
+    /**
+     * @class sig_calc_type
+     * @brief A class to handle calculations on CAN signal values.
+     * @tparam T The type of the signal value (std::uint64_t, std::int64_t, float, or double).
+     */
     template <typename T>
-    requires std::is_same_v<T, std::uint64_t> || std::is_same_v<T, std::int64_t> || std::is_same_v<T, float> || std::is_same_v<T,
-        double>
+    requires std::is_same_v<T, std::uint64_t> || std::is_same_v<T, std::int64_t> || std::is_same_v<T,
+        float> || std::is_same_v<T, double>
     class sig_calc_type
     {
         T _value = 0;
 
     public:
+        /**
+         * @brief Constructor for sig_calc_type.
+         * @param raw The raw signal value.
+         */
         sig_calc_type(std::uint64_t raw)
-        {
+		{
             _value = *(const T*)&raw;
         }
 
+        /**
+         * @brief Get the raw signal value.
+         * @return Raw signal value.
+         */
         std::uint64_t get_raw() const
-        {
+		{
             return *(const std::uint64_t*)&_value;
         }
 
+        /**
+         * @brief Add two sig_calc_type values.
+         * @param rhs The right-hand side value to add.
+         * @return The result of the addition.
+         */
         sig_calc_type<T> operator+(const sig_calc_type<T>& rhs) const
-        {
+		{
             return from_value(_value + rhs._value);
         }
 
+        /**
+         * @brief Integer division with rounding.
+         * @param d The divisor.
+         * @return The result of the division.
+         */
         sig_calc_type<T> idivround(std::int64_t d) const
-        {
+		{
             if constexpr (std::is_same_v<T, std::uint64_t> || std::is_same_v<T, std::int64_t>)
 			{
                 return from_value(T((_value < 0) ? (_value - d / 2) / d : (_value + d / 2) / d));
@@ -187,48 +130,60 @@ namespace can
         }
 
     private:
+        /**
+         * @brief Create a sig_calc_type from a value.
+         * @param val The value.
+         * @return The created sig_calc_type.
+         */
         sig_calc_type<T> from_value(T val) const
         {
             return sig_calc_type(*(const std::uint64_t*)&val);
         }
     };
 
+    /**
+     * @enum val_type_t
+     * @brief Enumeration for value types.
+     */
     enum val_type_t
     {
-        i64 = 0,
-        f32 = 1,
-        f64 = 2,
-        u64 = 3
+        i64 = 0, ///< 64-bit signed integer
+        f32 = 1, ///< 32-bit floating point
+        f64 = 2, ///< 64-bit floating point
+        u64 = 3  ///< 64-bit unsigned integer
     };
 
+    /**
+     * @class phys_value
+     * @brief A class to convert raw signal values to physical values.
+     */
     class phys_value
     {
         double _factor, _offset;
 
     public:
-        phys_value(double factor, double offset)
-            : _factor(factor)
-            , _offset(offset)
-        {
-        }
+        /**
+         * @brief Constructor for phys_value.
+         * @param factor The factor for conversion.
+         * @param offset The offset for conversion.
+         */
+        phys_value(double factor, double offset);
 
-        double operator()(std::uint64_t raw, val_type_t val_type) const
-        {
-            switch (val_type)
-            {
-                case i64:
-                    return raw_to_phys<std::int64_t>(raw);
-                case u64:
-                    return raw_to_phys<std::uint64_t>(raw);
-                case f32:
-                    return raw_to_phys<float>(raw);
-                case f64:
-                    return raw_to_phys<double>(raw);
-            }
-            return 0;
-        }
+        /**
+         * @brief Convert raw signal value to physical value.
+         * @param raw The raw signal value.
+         * @param val_type The type of the value.
+         * @return The physical value.
+         */
+        double operator()(std::uint64_t raw, val_type_t val_type) const;
 
     private:
+        /**
+         * @brief Convert raw signal value to physical value.
+         * @tparam T The type of the value.
+         * @param raw The raw signal value.
+         * @return The physical value.
+         */
         template <typename T>
         double raw_to_phys(std::uint64_t raw) const
         {

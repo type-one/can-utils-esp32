@@ -133,7 +133,7 @@ namespace can
         std::int64_t prev_id = 0;
         for (const auto& smsg : _msg_clumps)
         {
-            can_frame cf { 0 };
+            can_frame cf = { 0 };
             cf.can_id = smsg.message_id;
             cf.len = CAN_MAX_DLEN;
             can::use_non_muxed(cf, prev_id != cf.can_id);

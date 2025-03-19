@@ -17,7 +17,14 @@ include(FetchContent)
 # https://cmake.org/cmake/help/latest/module/FindGit.html
 find_package(Git REQUIRED)
 if(Git_FOUND)
-  message("Git found: ${GIT_EXECUTABLE}")
+    message("Git found: ${GIT_EXECUTABLE}")
+endif()
+
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_PROGRAM}")
+    message(STATUS "ccache found and enabled")
 endif()
 
 # Boost version
@@ -279,6 +286,7 @@ file(GLOB_RECURSE TARGET_H
 # Local source files here
 
 set(TARGET_CAN_UTILS_SRC
+        can/can_codec.cpp
         dbc/dbc_parser.cpp
         v2c/v2c_transcoder.cpp
 )
