@@ -7,6 +7,19 @@
     http://mcu.so/Microcontroller/Automotive/dbc-file-format-documentation_compress.pdf
 ===========================================================================================*/
 
+/**
+ * @file dbc_parser.hpp
+ * @brief Header file - Extremely efficient DBC file format parser, built on top of Boost Spirit.
+ * 
+ * This file contains the implementation of a DBC (Database Container) parser for CAN (Controller Area Network) data.
+ * The parser is designed to be highly efficient and strictly follows the grammar rules from the latest DBC specification.
+ * It is adapted for the ESP32 micro-controller and is a fork and modification of the MIREO version.
+ * 
+ * @note The parser uses Boost Spirit for parsing the DBC file format.
+ * 
+ * @copyright (c) 2001-2023 Mireo, EU
+ */
+
 //-----------------------------------------------------------------------------//
 // ESP32 C++ DBC/CAN parser - Spare time mod and FreeRTOS port for fun         //
 // Laurent Lardinois https://be.linkedin.com/in/laurentlardinois               //
@@ -160,6 +173,13 @@ namespace can
         def_ba_def_float, def_ba_def_string, def_ba_def_def, def_ba, def_sg, def_sg_mux, def_val_env, def_val_sg,
         def_val_table, def_sig_valtype, def_bo_tx_bu, def_sg_mul_val>;
 
+	/**
+	 * @brief Parses the entire DBC file.
+	 * 
+	 * @param dbc_src The DBC file source.
+	 * @param ipt The interpreter.
+	 * @return true if parsing was successful, false otherwise.
+	 */
     bool parse_dbc(std::string_view dbc_src, interpreter ipt);
 
 } // end namespace can

@@ -7,6 +7,20 @@
     http://mcu.so/Microcontroller/Automotive/dbc-file-format-documentation_compress.pdf
 ===========================================================================================*/
 
+/**
+ * @file dbc_parser.cppp
+ * @brief Implementation file - Extremely efficient DBC file format parser, built on top of Boost Spirit.
+ *
+ * This file contains the implementation of a DBC (Database Container) parser for CAN (Controller Area Network) data.
+ * The parser is designed to be highly efficient and strictly follows the grammar rules from the latest DBC
+ * specification. It is adapted for the ESP32 micro-controller and is a fork and modification of the MIREO version.
+ *
+ * @note The parser uses Boost Spirit for parsing the DBC file format.
+ *
+ * @copyright (c) 2001-2023 Mireo, EU
+ */
+
+
 //-----------------------------------------------------------------------------//
 // ESP32 C++ DBC/CAN parser - Spare time mod and FreeRTOS port for fun         //
 // Laurent Lardinois https://be.linkedin.com/in/laurentlardinois               //
@@ -16,7 +30,7 @@
 // A C++ DBC file parser, and a CAN telemetry tool, adapted for                //
 // ESP32 micro-controller, forked and modified from MIREO version at           //
 // https://github.com/mireo/can-utils                                          //
-//-----------------------------------------------------------------------------// 
+//-----------------------------------------------------------------------------//
 
 #include <cstddef>
 #include <cstdint>
@@ -40,18 +54,41 @@ namespace x3 = boost::spirit::x3;
 namespace can
 {
 
+    /**
+     * @brief Converts the parsed attribute to the specified type.
+     *
+     * @tparam T The type to convert to.
+     * @param arg The argument to convert.
+     * @return A lambda function that performs the conversion.
+     */
     template <typename T>
     constexpr auto to(T& arg)
     {
         return [&](auto& ctx) { arg = x3::_attr(ctx); };
     }
 
+    /**
+     * @brief Creates a parser rule for the specified type.
+     *
+     * @tparam T The type to create the rule for.
+     * @tparam Parser The parser to use.
+     * @param p The parser to use.
+     * @return The created parser rule.
+     */
     template <typename T, typename Parser>
     constexpr auto as(Parser&& p)
     {
         return x3::rule<struct _, T> {} = std::forward<Parser>(p);
     }
 
+    /**
+     * @brief Selects a parser based on the specified tag and symbols.
+     *
+     * @tparam Tag The tag to use.
+     * @tparam Symbols The symbols to use.
+     * @param sym The symbols to use.
+     * @return The selected parser.
+     */
     template <typename Tag, typename Symbols>
     constexpr auto select_parser(Symbols&& sym)
     {
@@ -59,11 +96,30 @@ namespace can
         return x3::omit[sym[action]];
     }
 
+    /**
+     * @brief A lazy parser type.
+     *
+     * @tparam Tag The tag to use.
+     */
     template <typename Tag>
     struct lazy_type : x3::parser<lazy_type<Tag>>
     {
         using attribute_type = typename Tag::attribute_type;
 
+        /**
+         * @brief Parses the input using the lazy parser.
+         *
+         * @tparam It The iterator type.
+         * @tparam Ctx The context type.
+         * @tparam RCtx The rule context type.
+         * @tparam Attr The attribute type.
+         * @param first The beginning of the input.
+         * @param last The end of the input.
+         * @param ctx The context.
+         * @param rctx The rule context.
+         * @param attr The attribute.
+         * @return true if parsing was successful, false otherwise.
+         */
         template <typename It, typename Ctx, typename RCtx, typename Attr>
         bool parse(It& first, It last, Ctx& ctx, RCtx& rctx, Attr& attr) const
         {
@@ -99,6 +155,12 @@ namespace can
     const auto quoted_name_
         = as<std::string>(x3::lexeme['"' >> *(('\\' >> x3::char_("\\\"")) | ~x3::char_('"')) >> '"']);
 
+    /**
+     * @brief Skips blank lines in the input.
+     *
+     * @param rng The input range.
+     * @return The input range with blank lines skipped.
+     */
     static std::string_view skip_blines(std::string_view rng)
     {
         constexpr auto eols_ = x3::omit[+x3::eol];
@@ -115,16 +177,38 @@ namespace can
     using attr_val_rule = x3::any_parser<std::string_view::const_iterator, attr_val_t>;
     using attr_types_t = x3::symbols<attr_val_rule>;
 
+    /**
+     * @brief Creates a parse result value.
+     *
+     * @param b The beginning of the input.
+     * @param e The end of the input.
+     * @param v The parse result value.
+     * @return The created parse result value.
+     */
     static auto make_rv(std::string_view::iterator b, std::string_view::iterator e, bool v)
     {
         return std::make_pair(std::string_view { b, e }, v);
     }
 
+    /**
+     * @brief Creates a parse result value.
+     *
+     * @param s The input range.
+     * @param v The parse result value.
+     * @return The created parse result value.
+     */
     static auto make_rv(std::string_view s, bool v)
     {
         return std::make_pair(s, v);
     }
 
+    /**
+     * @brief Parses the version section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_version(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -143,6 +227,12 @@ namespace can
         return make_rv(iter, rng.end(), true);
     };
 
+    /**
+     * @brief Parses the NS_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @return The parse result value.
+     */
     static const parse_rv parse_ns_(std::string_view rng)
     {
         struct ns_syms : x3::symbols<unsigned>
@@ -171,6 +261,12 @@ namespace can
         return make_rv(iter, rng.end(), true);
     }
 
+    /**
+     * @brief Parses the BS_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @return The parse result value.
+     */
     static const parse_rv parse_bs_(std::string_view rng)
     {
         const auto bs_ = x3::omit[x3::lexeme[x3::lit("BS_:")]]
@@ -186,6 +282,14 @@ namespace can
         return make_rv(iter, rng.end(), true);
     };
 
+    /**
+     * @brief Parses the BU_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_bu_(std::string_view rng, nodes_t& nodes, interpreter& ipt)
     {
         std::vector<std::string> node_names;
@@ -209,6 +313,15 @@ namespace can
         return make_rv(iter, rng.end(), true);
     };
 
+    /**
+     * @brief Parses the SG_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @param can_id The CAN ID.
+     * @return The parse result value.
+     */
     static const parse_rv parse_sg_(std::string_view rng, const nodes_t& nodes, interpreter& ipt, std::uint32_t can_id)
     {
         bool has_sect = false;
@@ -257,6 +370,15 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
+
+    /**
+     * @brief Parses the BO_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_bo_(std::string_view rng, const nodes_t& nodes, interpreter& ipt)
     {
         bool has_sect = false;
@@ -272,23 +394,31 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), bo_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             def_bo(ipt, can_id, std::move(msg_name), msg_size, transmitter_ord);
 
             auto [remain_rng, expected] = parse_sg_({ iter, rng.end() }, nodes, ipt, can_id);
             if (!expected)
-			{
+            {
                 return make_rv(remain_rng, false);
-			}
+            }
             iter = remain_rng.begin();
         }
 
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the EV_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_ev_(std::string_view rng, const nodes_t& nodes, interpreter& ipt)
     {
         bool has_sect = false;
@@ -312,9 +442,9 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), ev_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             def_ev(ipt, std::move(ev_name), ev_type, ev_min, ev_max, std::move(ev_unit), ev_initial, ev_id,
                 std::move(ev_access_type), std::move(ev_access_nodes_ords));
@@ -322,6 +452,13 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the ENVVAR_DATA_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_envvar_data_(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -335,9 +472,9 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), envar_data_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             def_envvar_data(ipt, std::move(ev_name), data_size);
         }
@@ -345,6 +482,14 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the SGTYPE_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param val_tables The value tables.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_sgtype_(std::string_view rng, const nodes_t& val_tables, interpreter& ipt)
     {
         bool has_sect = false;
@@ -375,9 +520,9 @@ namespace can
             msg_id.reset();
 
             if (!phrase_parse(iter, rng.end(), sg_type_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             if (msg_id.has_value())
             {
@@ -392,6 +537,13 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the SIG_GROUP_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_sig_group_(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -407,15 +559,23 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), sig_group_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             def_sig_group(ipt, msg_id, std::move(sig_group_name), repetitions, std::move(sig_names));
         }
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the CM_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_cm_(std::string_view rng, const nodes_t& nodes, interpreter& ipt)
     {
         bool has_sect = false;
@@ -446,34 +606,42 @@ namespace can
             object_type.clear();
 
             if (!phrase_parse(iter, rng.end(), cm_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             if (object_type.empty())
-			{
+            {
                 def_cm_glob(ipt, std::move(comment_text));
-			}
+            }
             else if (object_type == "BU_")
-			{
+            {
                 def_cm_bu(ipt, bu_ord, std::move(comment_text));
-			}
+            }
             else if (object_type == "BO_")
-			{
+            {
                 def_cm_bo(ipt, message_id, std::move(comment_text));
-			}
+            }
             else if (object_type == "SG_")
-			{
+            {
                 def_cm_sg(ipt, message_id, std::move(object_name), std::move(comment_text));
-			}
+            }
             else if (object_type == "EV_")
-			{
+            {
                 def_cm_ev(ipt, std::move(object_name), std::move(comment_text));
-			}
+            }
         }
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the BA_DEF_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ats_ The attribute types.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_ba_def_(std::string_view rng, attr_types_t& ats_, interpreter& ipt)
     {
         bool has_sect = false;
@@ -506,9 +674,9 @@ namespace can
         {
             object_type.clear();
             if (!phrase_parse(iter, rng.end(), ba_def_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             if (data_type == "ENUM")
             {
@@ -534,6 +702,14 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the BA_DEF_DEF_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ats_ The attribute types.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_ba_def_def_(std::string_view rng, const attr_types_t& ats_, interpreter& ipt)
     {
         bool has_sect = false;
@@ -550,15 +726,24 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), ba_def_def_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             def_ba_def_def(ipt, std::move(attr_name), std::move(attr_val));
         }
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the BA_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ats_ The attribute types.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_ba_(
         std::string_view rng, const nodes_t& nodes, const attr_types_t& ats_, interpreter& ipt)
     {
@@ -589,9 +774,9 @@ namespace can
             object_type.clear();
 
             if (!phrase_parse(iter, rng.end(), ba_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             // TODO: can break this up into multiple CPOs
 
@@ -601,6 +786,13 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the VAL_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_val_(std::string_view rng, interpreter& ipt)
     {
         using val_desc = std::pair<unsigned, std::string>;
@@ -618,22 +810,30 @@ namespace can
         {
             msg_id.reset();
             if (!phrase_parse(iter, rng.end(), val_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             if (!msg_id.has_value())
-			{
+            {
                 def_val_env(ipt, env_var_name, std::move(val_descs));
-			}
+            }
             else
-			{
+            {
                 def_val_sg(ipt, msg_id.value(), signal_name, std::move(val_descs));
-			}
+            }
         }
         return make_rv(rng.end(), rng.end(), true);
     }
 
+    /**
+     * @brief Parses the VAL_TABLE_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param val_tables The value tables.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     */
     static const parse_rv parse_val_table_(std::string_view rng, nodes_t& val_tables, interpreter& ipt)
     {
         using val_desc = std::pair<unsigned, std::string>;
@@ -650,9 +850,9 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), val_table_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             val_tables.add(table_name, val_table_ord++);
 
@@ -661,6 +861,13 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
+	/**
+	 * @brief Parses the SIG_VALTYPE_ section of the DBC file.
+	 * 
+	 * @param rng The input range.
+	 * @param ipt The interpreter.
+	 * @return The parse result value.
+	 */	
     static const parse_rv parse_sig_valtype_(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -675,15 +882,22 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), sig_valtype_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             def_sig_valtype(ipt, msg_id, std::move(sig_name), sig_ext_val_type);
         }
         return make_rv(rng.end(), rng.end(), true);
     }
 
+	/**
+	 * @brief Parses the BO_TX_BU_ section of the DBC file.
+	 * 
+	 * @param rng The input range.
+	 * @param ipt The interpreter.
+	 * @return The parse result value.
+	 */	
     static const parse_rv parse_bo_tx_bu(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -697,15 +911,22 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), sig_valtype_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             def_bo_tx_bu(ipt, msg_id, std::move(transmitters));
         }
         return make_rv(rng.end(), rng.end(), true);
     }
 
+	/**
+	 * @brief Parses the SG_MUL_VAL_ section of the DBC file.
+	 * 
+	 * @param rng The input range.
+	 * @param ipt The interpreter.
+	 * @return The parse result value.
+	 */	
     static const parse_rv parse_sg_mul_val_(std::string_view rng, interpreter& ipt)
     {
         using value_range = std::pair<unsigned, unsigned>;
@@ -724,15 +945,22 @@ namespace can
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
             if (!phrase_parse(iter, rng.end(), sg_mul_val_, skipper_))
-			{
+            {
                 return make_rv(iter, rng.end(), !has_sect);
-			}
+            }
 
             def_sg_mul_val(ipt, msg_id, std::move(mux_sig_name), std::move(mux_switch_name), std::move(val_ranges));
         }
         return make_rv(rng.end(), rng.end(), true);
     }
 
+	/**
+	 * @brief Reports a syntax error.
+	 * 
+	 * @param where The location of the error.
+	 * @param what The error message.
+	 * @return false Always returns false.
+	 */	
     static bool syntax_error(std::string_view where, std::string_view what = "")
     {
         auto eol = where.find('\n');
@@ -747,110 +975,110 @@ namespace can
         bool expected = true;
 
         if (std::tie(pv, expected) = parse_version(pv, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_ns_(pv); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_bs_(pv); !expected)
-		{
+        {
             return syntax_error(pv, "(expected correct BS_)");
-		}
+        }
 
         nodes_t nodes;
 
         if (std::tie(pv, expected) = parse_bu_(pv, nodes, ipt); !expected)
-		{
+        {
             return syntax_error(pv, "(expected correct BU_)");
-		}
+        }
 
         nodes_t val_tables;
 
         if (std::tie(pv, expected) = parse_val_table_(pv, val_tables, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_bo_(pv, nodes, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_bo_tx_bu(pv, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_ev_(pv, nodes, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_envvar_data_(pv, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_val_(pv, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_sgtype_(pv, val_tables, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_sig_group_(pv, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_cm_(pv, nodes, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         attr_types_t attr_types;
 
         if (std::tie(pv, expected) = parse_ba_def_(pv, attr_types, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_ba_def_def_(pv, attr_types, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_ba_(pv, nodes, attr_types, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_val_(pv, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_sig_valtype_(pv, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (std::tie(pv, expected) = parse_sg_mul_val_(pv, ipt); !expected)
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         if (!pv.empty())
-		{
+        {
             return syntax_error(pv);
-		}
+        }
 
         return true;
     }
