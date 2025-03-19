@@ -9,10 +9,29 @@
 
 /**
  * @file tag_invoke.hpp
- * @brief 
- * 
+ * @brief Provides utilities for Tag Invoke customization point.
  *
+ * This header file contains the implementation of the tag_invoke customization point,
+ * which allows for the customization of behavior for specific types through the use of
+ * a customization point object (CPO). The implementation is based on the proposal
+ * outlined in P1895R0 and follows the principles of Eric Niebler's Ranges library.
+ *
+ * The main components of this header file include:
+ * - The `mireo::_tag_invoke` namespace, which contains internal implementation details
+ *   for the tag_invoke mechanism.
+ * - The `mireo::_tag_invoke_cpo` namespace, which defines the tag_invoke customization
+ *   point object.
+ * - Various type traits and concepts to check the invocability and noexcept properties
+ *   of tag_invoke.
+ *
+ * @note This implementation is optimized for compile-time performance and does not
+ * rely on the generality of the standard library's invoke_result and is_invocable traits.
+ *
+ * @copyright
+ * Copyright (c) 2001-2023 Mireo, EU
  * 
+ * @see
+ * https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1895r0.pdf
  */
 
 //-----------------------------------------------------------------------------//
@@ -84,14 +103,32 @@ void example() {
 #include <type_traits>
 #include <utility>
 
+/**
+ * @namespace mireo
+ * @brief Contains the implementation of tag_invoke customization point.
+ */
 namespace mireo
 {
-
+    /**
+     * @namespace mireo::_tag_invoke
+     * @brief Internal namespace for tag_invoke implementation details.
+     */
     namespace _tag_invoke
     {
-
+        /**
+         * @struct mireo::_tag_invoke::_fn
+         * @brief Function object for invoking tag_invoke.
+         */
         struct _fn
         {
+            /**
+             * @brief Invokes the tag_invoke customization point.
+             * @tparam CPO Customization point object type.
+             * @tparam Args Argument types.
+             * @param cpo Customization point object.
+             * @param args Arguments to pass to the customization point.
+             * @return Result of invoking tag_invoke with the given arguments.
+             */
             template <typename CPO, typename... Args>
             constexpr auto operator()(CPO cpo, Args&&... args) const
                 noexcept(noexcept(tag_invoke((CPO &&) cpo, (Args &&) args...)))
@@ -101,38 +138,90 @@ namespace mireo
             }
         };
 
+
+        /**
+         * @typedef mireo::_tag_invoke::tag_invoke_result_t
+         * @brief Alias for the result type of invoking tag_invoke.
+         * @tparam CPO Customization point object type.
+         * @tparam Args Argument types.
+         */
         template <typename CPO, typename... Args>
         using tag_invoke_result_t = decltype(tag_invoke(std::declval<CPO&&>(), std::declval<Args&&>()...));
 
+        /**
+         * @typedef mireo::_tag_invoke::yes_type
+         * @brief Type indicating a successful tag_invoke.
+         */
         using yes_type = char;
+
+        /**
+         * @typedef mireo::_tag_invoke::no_type
+         * @brief Type indicating a failed tag_invoke.
+         */
         using no_type = char (&)[2];
 
+        /**
+         * @brief Tries to invoke tag_invoke and returns yes_type on success.
+         * @tparam CPO Customization point object type.
+         * @tparam Args Argument types.
+         * @return yes_type if tag_invoke is invocable, otherwise no_type.
+         */
         template <typename CPO, typename... Args>
         auto try_tag_invoke(int) noexcept(noexcept(tag_invoke(std::declval<CPO&&>(), std::declval<Args&&>()...)))
             -> decltype(static_cast<void>(tag_invoke(std::declval<CPO&&>(), std::declval<Args&&>()...)), yes_type {});
 
+        /**
+         * @brief Fallback for try_tag_invoke that returns no_type.
+         * @tparam CPO Customization point object type.
+         * @tparam Args Argument types.
+         * @return no_type.
+         */
         template <typename CPO, typename... Args>
         no_type try_tag_invoke(...) noexcept(false);
 
+        /**
+         * @struct mireo::_tag_invoke::defer
+         * @brief Helper struct to defer instantiation of a template.
+         * @tparam T Template to defer.
+         * @tparam Args Arguments to pass to the template.
+         */
         template <template <typename...> class T, typename... Args>
         struct defer
         {
             using type = T<Args...>;
         };
 
+        /**
+         * @struct mireo::_tag_invoke::empty
+         * @brief Empty struct used as a default type.
+         */
         struct empty
         {
         };
 
     } // namespace _tag_invoke
 
+
+    /**
+     * @namespace mireo::_tag_invoke_cpo
+     * @brief Contains the tag_invoke customization point object.
+     */
     namespace _tag_invoke_cpo
     {
+        /**
+         * @var mireo::_tag_invoke_cpo::tag_invoke
+         * @brief The tag_invoke customization point object.
+         */
         inline constexpr _tag_invoke::_fn tag_invoke {};
     }
 
     using namespace _tag_invoke_cpo;
 
+    /**
+     * @typedef mireo::tag_t
+     * @brief Alias for the type of a customization point object.
+     * @tparam CPO Customization point object.
+     */
     template <auto& CPO>
     using tag_t = std::remove_cvref_t<decltype(CPO)>;
 
@@ -142,27 +231,70 @@ namespace mireo
     // std:: traits and the tag_invoke traits are used heavily through libunifex
     // so optimising them for compile time makes a big difference.
 
+    /**
+     * @typedef mireo::tag_invoke_result_t
+     * @brief Alias for the result type of invoking tag_invoke.
+     * @tparam CPO Customization point object type.
+     * @tparam Args Argument types.
+     */
     using _tag_invoke::tag_invoke_result_t;
 
+
+    /**
+     * @brief Checks if tag_invoke is invocable with the given arguments.
+     * @tparam CPO Customization point object type.
+     * @tparam Args Argument types.
+     * @return true if tag_invoke is invocable, otherwise false.
+     */
     template <typename CPO, typename... Args>
     inline constexpr bool is_tag_invocable_v
         = (sizeof(_tag_invoke::try_tag_invoke<CPO, Args...>(0)) == sizeof(_tag_invoke::yes_type));
 
+    /**
+     * @struct mireo::tag_invoke_result
+     * @brief Trait to get the result type of invoking tag_invoke.
+     * @tparam CPO Customization point object type.
+     * @tparam Args Argument types.
+     */
     template <typename CPO, typename... Args>
     struct tag_invoke_result : std::conditional_t<is_tag_invocable_v<CPO, Args...>,
                                    _tag_invoke::defer<tag_invoke_result_t, CPO, Args...>, _tag_invoke::empty>
     {
     };
 
+    /**
+     * @typedef mireo::is_tag_invocable
+     * @brief Trait to check if tag_invoke is invocable.
+     * @tparam CPO Customization point object type.
+     * @tparam Args Argument types.
+     */
     template <typename CPO, typename... Args>
     using is_tag_invocable = std::bool_constant<is_tag_invocable_v<CPO, Args...>>;
 
+    /**
+     * @brief Checks if tag_invoke is nothrow invocable with the given arguments.
+     * @tparam CPO Customization point object type.
+     * @tparam Args Argument types.
+     * @return true if tag_invoke is nothrow invocable, otherwise false.
+     */
     template <typename CPO, typename... Args>
     inline constexpr bool is_nothrow_tag_invocable_v = noexcept(_tag_invoke::try_tag_invoke<CPO, Args...>(0));
 
+    /**
+     * @typedef mireo::is_nothrow_tag_invocable
+     * @brief Trait to check if tag_invoke is nothrow invocable.
+     * @tparam CPO Customization point object type.
+     * @tparam Args Argument types.
+     */
     template <typename CPO, typename... Args>
     using is_nothrow_tag_invocable = std::bool_constant<is_nothrow_tag_invocable_v<CPO, Args...>>;
 
+    /**
+     * @concept mireo::tag_invocable
+     * @brief Concept to check if tag_invoke is invocable.
+     * @tparam CPO Customization point object type.
+     * @tparam Args Argument types.
+     */
     template <typename CPO, typename... Args>
     concept tag_invocable = is_tag_invocable_v<CPO, Args...>;
 
