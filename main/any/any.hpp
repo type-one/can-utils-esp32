@@ -7,6 +7,16 @@
     http://mcu.so/Microcontroller/Automotive/dbc-file-format-documentation_compress.pdf
 ===========================================================================================*/
 
+/**
+ * @file any.hpp
+ * @brief This file contains the implementation of a type-erasing wrapper for various callable objects.
+ * 
+ * It provides the `any`, `any_copyable`, `any_function`, and `any_copyable_function` templates
+ * for type-erased storage and invocation of callable objects.
+ *
+ * @see https://github.com/facebookexperimental/libunifex/blob/main/doc/type_erasure.md
+ */
+
 //-----------------------------------------------------------------------------//
 // ESP32 C++ DBC/CAN parser - Spare time mod and FreeRTOS port for fun         //
 // Laurent Lardinois https://be.linkedin.com/in/laurentlardinois               //
@@ -59,9 +69,9 @@ class any_copyable_function;
 
 */
 
-#include "tag_invoke.hpp"
 #include <memory>
-
+#include <type_traits>
+#include "tag_invoke.hpp"
 
 namespace mireo
 {

@@ -133,7 +133,7 @@ namespace can
         std::int64_t prev_id = 0;
         for (const auto& smsg : _msg_clumps)
         {
-            can_frame cf = { 0 };
+            can_frame cf = {};
             cf.can_id = smsg.message_id;
             cf.len = CAN_MAX_DLEN;
             can::use_non_muxed(cf, prev_id != cf.can_id);
@@ -163,7 +163,7 @@ namespace can
 
     void tx_group::assign(canid_t message_id, std::int64_t message_mux)
     {
-        _msg_clumps.push_back({ .message_id = message_id, .message_mux = message_mux });
+        _msg_clumps.push_back({ .stamp = {}, .message_id = message_id, .message_mux = message_mux, .mdata = 0U });
     }
 
     bool tx_group::within_interval(can_time stamp) const
@@ -446,6 +446,8 @@ namespace can
     void v2c_transcoder::assign_tx_group(
         const std::string& object_type, unsigned message_id, const std::string& tx_group)
     {
+		(void) object_type;
+
         auto grp_it
             = std::find_if(_tx_groups.begin(), _tx_groups.end(), [&](const auto& g) { return g->name() == tx_group; });
 

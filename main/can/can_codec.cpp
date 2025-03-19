@@ -6,6 +6,20 @@
     Strictly follows the grammar rules from the last updated DBC specification available at
     http://mcu.so/Microcontroller/Automotive/dbc-file-format-documentation_compress.pdf
 ===========================================================================================*/
+
+/**
+ * @file can_codec.cpp
+ * @brief Implementation file for CAN signal encoding and decoding, and physical value conversion.
+ * 
+ * This file contains the implementations of classes and functions for encoding and decoding
+ * CAN bus signals, handling calculations on CAN signal values, and converting raw signal
+ * values to physical values. It is designed for use with the ESP32 micro-controller and
+ * is a fork and modification of the MIREO version.
+ *
+ * @copyright Copyright (c) 2001-2023 Mireo, EU
+ * 
+ */
+
 //-----------------------------------------------------------------------------//
 // ESP32 C++ DBC/CAN parser - Spare time mod and FreeRTOS port for fun         //
 // Laurent Lardinois https://be.linkedin.com/in/laurentlardinois               //

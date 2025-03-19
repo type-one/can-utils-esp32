@@ -6,6 +6,28 @@
     Strictly follows the grammar rules from the last updated DBC specification available at
     http://mcu.so/Microcontroller/Automotive/dbc-file-format-documentation_compress.pdf
 ===========================================================================================*/
+
+/**
+ * @file can_codec.hpp
+ * @brief Header file for CAN signal encoding and decoding, and physical value conversion.
+ * 
+ * This file contains the definitions of classes and functions for encoding and decoding
+ * CAN bus signals, handling calculations on CAN signal values, and converting raw signal
+ * values to physical values. It is designed for use with the ESP32 micro-controller and
+ * is a fork and modification of the MIREO version.
+ *
+ * @copyright Copyright (c) 2001-2023 Mireo, EU
+ * 
+ * @details
+ * 
+ * The main classes provided in this file are:
+ * - can::sig_codec: A class to encode and decode CAN bus signals.
+ * - can::sig_calc_type: A template class to handle calculations on CAN signal values.
+ * - can::phys_value: A class to convert raw signal values to physical values.
+ * 
+ * The file also defines an enumeration for value types (can::val_type_t). 
+ */
+
 //-----------------------------------------------------------------------------//
 // ESP32 C++ DBC/CAN parser - Spare time mod and FreeRTOS port for fun         //
 // Laurent Lardinois https://be.linkedin.com/in/laurentlardinois               //
@@ -34,6 +56,7 @@ namespace can
      */
     class sig_codec
     {
+		private:
         using order = boost::endian::order;
         unsigned _start_bit, _bit_size;
         order _byte_order;

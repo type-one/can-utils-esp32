@@ -297,6 +297,12 @@ namespace can
         char sg_byte_order, char sg_sign, double sg_factor, double sg_offset, double sg_min, double /*sg_max*/,
         std::string sg_unit, std::vector<size_t> rec_ords)
     {
+		(void) sg_factor;
+		(void) sg_offset;
+		(void) sg_min;
+		(void) sg_unit;
+		(void) rec_ords;
+		
         sig_codec codec { sg_start_bit, sg_size, sg_byte_order, sg_sign };
         tr_signal sig { sg_name, codec, std::optional<std::int64_t>(sg_mux_switch_val) };
         this_.add_signal(message_id, std::move(sig));
@@ -306,6 +312,9 @@ namespace can
         unsigned sg_start_bit, unsigned sg_size, char sg_byte_order, char sg_sign, std::string sg_unit,
         std::vector<size_t> rec_ords)
     {
+		(void)sg_name;
+		(void)sg_unit;
+		(void)rec_ords;
         sig_codec codec { sg_start_bit, sg_size, sg_byte_order, sg_sign };
         tr_muxer mux { codec };
         this_.add_muxer(message_id, std::move(mux));
@@ -314,6 +323,8 @@ namespace can
     inline void tag_invoke(def_bo_cpo, v2c_transcoder& this_, std::uint32_t message_id, std::string msg_name,
         std::size_t msg_size, std::size_t transmitter_ord)
     {
+		(void) msg_size;
+		(void) transmitter_ord;
         this_.add_message(message_id, std::move(msg_name));
     }
 
@@ -321,17 +332,31 @@ namespace can
         double ev_max, std::string unit, double initial, unsigned ev_id, std::string access_type,
         std::vector<std::size_t> access_nodes_ords)
     {
+		(void) type;
+		(void) ev_min;
+		(void) ev_max;
+		(void) unit;
+		(void) ev_id;
+		(void) access_type;
+		(void) access_nodes_ords;
+
         this_.set_env_var(name, initial);
     }
 
     inline void tag_invoke(def_ba_cpo, v2c_transcoder& this_, std::string attr_name, std::string object_type,
         std::string object_name, std::size_t bu_id, unsigned message_id, std::variant<std::int32_t, double, std::string> attr_val)
     {
+		(void) bu_id;
+
         if (attr_name == "AggType" && attr_val.index() == 2)
+		{
             this_.set_sig_agg_type(message_id, object_name, std::get<std::string>(attr_val));
+		}
 
         if (attr_name == "TxGroupFreq" && object_type == "BO_")
+		{
             this_.assign_tx_group(object_type, message_id, std::get<std::string>(attr_val));
+		}	
     }
 
     inline void tag_invoke(def_sig_valtype_cpo, v2c_transcoder& this_, unsigned message_id, std::string sig_name,
