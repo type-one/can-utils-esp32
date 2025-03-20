@@ -40,10 +40,32 @@
 namespace can
 {
 
+    /**
+     * @brief A constexpr structure that provides an assembly callable protocol object (CPO).
+     *
+     * This structure defines a type-erased signature and an overloaded function call operator
+     * that uses tag dispatch to invoke the appropriate function based on the type of the first argument.
+     */
     constexpr struct assemble_cpo
     {
+        /**
+         * @brief Type-erased signature for the callable protocol object.
+         *
+         * This defines the signature of the function that will be called using tag dispatch.
+         */
         using type_erased_signature_t = std::uint64_t(mireo::this_&, std::int64_t, std::uint64_t);
 
+        /**
+         * @brief Overloaded function call operator.
+         *
+         * This operator uses tag dispatch to invoke the appropriate function based on the type of the first argument.
+         *
+         * @tparam T The type of the first argument.
+         * @param x The first argument, which will be used to determine the appropriate function to call.
+         * @param mux_val A 64-bit signed integer parameter.
+         * @param fd A 64-bit unsigned integer parameter.
+         * @return std::uint64_t The result of the invoked function.
+         */
         template <typename T>
         requires mireo::tag_invocable<assemble_cpo, T&, std::uint64_t, std::uint64_t> std::uint64_t operator()(
             T& x, std::int64_t mux_val, std::uint64_t fd) const
@@ -52,6 +74,16 @@ namespace can
         }
     } sig_assemble;
 
+    /**
+     * @brief A constexpr structure representing a reset customization point object (CPO).
+     *
+     * This structure defines a type-erased signature and an overloaded function call operator
+     * that invokes the `reset` operation on the given object using tag dispatching.
+     *
+     * @tparam T The type of the object on which the reset operation is to be performed.
+     *
+     * @note The `reset` operation is performed using the `mireo::tag_invoke` mechanism.
+     */
     constexpr struct reset_cpo
     {
         using type_erased_signature_t = void(mireo::this_&);
@@ -64,18 +96,38 @@ namespace can
         }
     } sig_reset;
 
+    /**
+     * @brief A type alias for the `assemble_cpo` and `reset_cpo` customization point objects.
+     *
+     * This type alias defines a type that can hold either the `assemble_cpo` or the `reset_cpo` object.
+     */
     using sig_asm = mireo::any<sig_assemble, sig_reset>;
 
+    /**
+     * @class tr_signal
+     * @brief A class to handle the transcoding of signals received from a CAN bus.
+     *
+     * This class is responsible for managing the name, codec, aggregation type,
+     * value type, and optional multiplexer value of a signal. It provides methods
+     * to decode and encode signal data, check if the signal is active based on
+     * a frame multiplexer value, and get/set various properties of the signal.
+     */
     class tr_signal
     {
-        std::string _name;
-        sig_codec _codec;
+        std::string _name; ///< Name of the signal.
+        sig_codec _codec;  ///< Codec used for encoding/decoding the signal.
 
-        std::string _agg_type = "LAST";
-        val_type_t _val_type = i64;
-        std::optional<std::int64_t> _mux_val;
+        std::string _agg_type = "LAST";       ///< Aggregation type of the signal.
+        val_type_t _val_type = i64;           ///< Value type of the signal.
+        std::optional<std::int64_t> _mux_val; ///< Optional multiplexer value.
 
     public:
+        /**
+         * @brief Constructs a tr_signal object.
+         * @param name Name of the signal.
+         * @param codec Codec used for encoding/decoding the signal.
+         * @param mux_val Optional multiplexer value.
+         */
         tr_signal(std::string name, sig_codec codec, std::optional<std::int64_t> mux_val)
             : _name(std::move(name))
             , _codec(codec)
@@ -83,33 +135,65 @@ namespace can
         {
         }
 
+        /**
+         * @brief Gets the name of the signal.
+         * @return The name of the signal.
+         */
         const std::string& name() const
         {
             return _name;
         }
+
+        /**
+         * @brief Gets the optional multiplexer value.
+         * @return The optional multiplexer value.
+         */
         std::optional<int64_t> mux_val() const
         {
             return _mux_val;
         }
 
+        /**
+         * @brief Checks if the signal is active based on the frame multiplexer value.
+         * @param frame_mux_val The frame multiplexer value.
+         * @return True if the signal is active, false otherwise.
+         */
         bool is_active(std::uint64_t frame_mux_val) const
         {
             return !_mux_val || _mux_val == frame_mux_val;
         }
 
+        /**
+         * @brief Gets the aggregation type of the signal.
+         * @return The aggregation type of the signal.
+         */
         std::string_view agg_type() const
         {
             return _agg_type;
         }
+
+        /**
+         * @brief Sets the aggregation type of the signal.
+         * @param agg_type The new aggregation type.
+         */
         void agg_type(const std::string& agg_type)
         {
             _agg_type = agg_type;
         }
+
+        /**
+         * @brief Gets the value type of the signal.
+         * @return The value type of the signal.
+         */
         val_type_t value_type() const
         {
             return _val_type;
         }
 
+        /**
+         * @brief Sets the value type of the signal.
+         * @param vt The new value type.
+         */
         void value_type(unsigned vt)
         {
             _val_type = val_type_t(vt);
@@ -117,11 +201,22 @@ namespace can
                 _val_type = u64;
         }
 
+
+        /**
+         * @brief Decodes the given data using the codec.
+         * @param data The data to decode.
+         * @return The decoded value.
+         */
         std::uint64_t decode(std::uint64_t data) const
         {
             return _codec((std::uint8_t*)&data);
         }
 
+        /**
+         * @brief Encodes the given raw value using the codec.
+         * @param raw The raw value to encode.
+         * @return The encoded value.
+         */
         std::uint64_t encode(std::uint64_t raw) const
         {
             std::uint64_t rv = 0;
@@ -130,21 +225,46 @@ namespace can
         }
     };
 
+    /**
+     * @class tr_muxer
+     * @brief A class for encoding and decoding signals from a CAN bus.
+     *
+     * This class aggregates signals coming from a CAN bus using a specified codec.
+     * It provides methods to encode and decode data.
+     */
+
     class tr_muxer
     {
         sig_codec _codec;
 
     public:
+        /**
+         * @brief Constructs a tr_muxer object with the given codec.
+         *
+         * @param codec The codec to be used for encoding and decoding signals.
+         */
         tr_muxer(sig_codec codec)
             : _codec(codec)
         {
         }
 
+        /**
+         * @brief Decodes the given data using the codec.
+         *
+         * @param data The data to be decoded.
+         * @return The decoded data.
+         */
         std::uint64_t decode(std::uint64_t data) const
         {
             return _codec((std::uint8_t*)&data);
         }
 
+        /**
+         * @brief Encodes the given raw data using the codec.
+         *
+         * @param raw The raw data to be encoded.
+         * @return The encoded data.
+         */
         std::uint64_t encode(std::uint64_t raw) const
         {
             std::uint64_t rv = 0;
@@ -155,8 +275,24 @@ namespace can
 
     class tr_message;
 
+    /**
+     * @class tx_group
+     * @brief Manages a group of CAN messages for transmission.
+     *
+     * This class is responsible for collecting, managing, and publishing
+     * CAN messages within a specified time interval. It provides methods
+     * to add messages, check if all messages have been collected, and
+     * publish the collected messages.
+     */
     class tx_group
     {
+        /**
+         * @struct stamped_msg
+         * @brief Represents a CAN message with a timestamp.
+         *
+         * This structure holds the timestamp, message ID, multiplexer value,
+         * and message data for a CAN message.
+         */
         struct stamped_msg
         {
             can_time stamp;
@@ -174,16 +310,30 @@ namespace can
         friend class tr_message;
 
     public:
+        /**
+         * @brief Constructs a tx_group object.
+         * @param name The name of the group.
+         * @param assemble_freq The frequency at which messages are assembled.
+         */
         tx_group(std::string_view name, std::uint32_t assemble_freq)
             : _name(name)
             , _assemble_freq(assemble_freq)
         {
         }
 
+        /**
+         * @brief Gets the name of the group.
+         * @return The name of the group.
+         */
         std::string_view name() const
         {
             return _name;
         }
+
+        /**
+         * @brief Sets the origin time for the group.
+         * @param tp The origin time point.
+         */
         void time_begin(can_time tp)
         {
             _group_origin = tp;
@@ -234,14 +384,23 @@ namespace can
         void add_clumped(can_time stamp, canid_t message_id, std::int64_t message_mux, std::uint64_t cval);
     };
 
+    /**
+     * @class tr_message
+     * @brief Represents a CAN message with associated signals and optional multiplexer.
+     *
+     * The tr_message class provides functionality to manage and process CAN messages,
+     * including assigning groups, assembling messages from CAN frames, and managing signals.
+     * It supports adding signals and multiplexers, setting signal aggregation and value types,
+     * and retrieving active signals based on a frame descriptor.
+     */
     class tr_message
     {
-        std::vector<tr_signal> _signals;
-        std::optional<tr_muxer> _mux;
+        std::vector<tr_signal> _signals; /// A vector of signals associated with the message.
+        std::optional<tr_muxer> _mux;    /// An optional multiplexer associated with the message.
 
-        std::vector<sig_asm> _sig_asms;
-        tx_group* _tx_group = nullptr;
-        can_time _last_stamp;
+        std::vector<sig_asm> _sig_asms; /// A vector of signal assemblers for the message.
+        tx_group* _tx_group = nullptr;  /// A pointer to the transmission group assigned to the message.
+        can_time _last_stamp;           /// The timestamp of the last CAN frame processed.
 
     public:
         /**
@@ -284,6 +443,20 @@ namespace can
          */
         void add_muxer(tr_muxer mux);
 
+        /**
+         * @brief Filters and returns active signals based on the provided frame data.
+         *
+         * This function takes a 64-bit frame data (fd) as input and decodes it using
+         * the optional multiplexer (_mux). If the multiplexer is present, it decodes
+         * the frame data to obtain a frame multiplexer value (frame_mux). If the
+         * multiplexer is not present, frame_mux is set to -1.
+         *
+         * The function then filters the _signals collection to include only those
+         * signals that are active based on the frame_mux value.
+         *
+         * @param fd The 64-bit frame data to be decoded and used for filtering signals.
+         * @return A filtered range of signals that are active based on the frame_mux value.
+         */
         auto signals(std::uint64_t fd) const
         {
             std::uint64_t frame_mux = _mux.has_value() ? _mux->decode(fd) : -1;
@@ -316,6 +489,13 @@ namespace can
         std::vector<std::uint64_t> distinct_mux_vals() const;
     };
 
+    /**
+     * @class vin_assembler
+     * @brief A class to assemble Vehicle Identification Numbers (VIN) from CAN frames.
+     *
+     * This class provides functionality to decode VIN characters from CAN frames and
+     * assemble them into a complete VIN string.
+     */
     class vin_assembler
     {
         static constexpr std::size_t vin_len = 17; // industry standard
@@ -324,14 +504,28 @@ namespace can
         char _vin[vin_len];
 
     public:
+        /**
+         * @brief Checks if the VIN assembler is empty.
+         * @return True if the VIN assembler is empty, false otherwise.
+         */
         bool empty() const
         {
             return _cbits != ((1 << vin_len) - 1);
         }
+
+        /**
+         * @brief Retrieves the assembled VIN value.
+         * @return The assembled VIN string if complete, otherwise an empty string.
+         */
         std::string value() const
         {
             return empty() ? std::string {} : std::string { _vin, _vin + vin_len };
         }
+
+        /**
+         * @brief Sets the message ID for VIN messages.
+         * @param id The message ID to set.
+         */
         void vin_message_id(std::uint32_t id)
         {
             _vin_msg_id = id;
@@ -354,17 +548,28 @@ namespace can
         static int vin_char(std::string_view sig_name);
     };
 
+    /**
+     * @class v2c_transcoder
+     * @brief A class responsible for transcoding CAN frames to frame packets and managing transmission groups, signals,
+     * and messages.
+     *
+     * This class provides functionalities to transcode CAN frames, manage transmission groups, signals, and messages,
+     * set environment variables, and configure signal value and aggregation types. It also handles timers and stores
+     * assembled CAN frames up to a specified time point.
+     */
     class v2c_transcoder
     {
-        std::chrono::milliseconds _publish_freq;
+        std::chrono::milliseconds _publish_freq; /// The frequency at which data is published.
+        /// The frequency at which data is updated, calculated as the greatest common divisor (GCD) of all transmission
+        /// groups' frequencies.
         std::chrono::milliseconds _update_freq { 0 }; // gcd of all tx_groups' freqs
 
-        std::unordered_map<canid_t, tr_message> _msgs;
-        std::vector<std::unique_ptr<tx_group>> _tx_groups;
-        vin_assembler _vin;
+        std::unordered_map<canid_t, tr_message> _msgs;     /// A map of CAN message IDs to their corresponding messages.
+        std::vector<std::unique_ptr<tx_group>> _tx_groups; /// vector of unique pointers to transmission groups.
+        vin_assembler _vin;                                /// An assembler for the vehicle identification number (VIN).
 
-        frame_packet _frame_packet;
-        can_time _last_update_tp;
+        frame_packet _frame_packet; /// A packet containing the transcoded frame data.
+        can_time _last_update_tp;   /// The time point of the last update.
 
     public:
         /**
@@ -375,6 +580,10 @@ namespace can
          */
         frame_packet transcode(can_time stamp, can_frame frame);
 
+        /**
+         * @brief Retrieves the vehicle identification number (VIN).
+         * @return The VIN as a string.
+         */
         std::string vin() const
         {
             return _vin.value();
