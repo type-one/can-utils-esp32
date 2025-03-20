@@ -7,6 +7,11 @@
     http://mcu.so/Microcontroller/Automotive/dbc-file-format-documentation_compress.pdf
 ===========================================================================================*/
 
+/**
+ * @file v2c_transcoder.cpp
+ * @brief This file contains the implementation of CAN signal aggregation and transcoding.
+ */
+
 //-----------------------------------------------------------------------------//
 // ESP32 C++ DBC/CAN parser - Spare time mod and FreeRTOS port for fun         //
 // Laurent Lardinois https://be.linkedin.com/in/laurentlardinois               //
@@ -16,7 +21,7 @@
 // A C++ DBC file parser, and a CAN telemetry tool, adapted for                //
 // ESP32 micro-controller, forked and modified from MIREO version at           //
 // https://github.com/mireo/can-utils                                          //
-//-----------------------------------------------------------------------------// 
+//-----------------------------------------------------------------------------//
 
 #include <algorithm>
 #include <bit>
@@ -33,18 +38,31 @@
 namespace can
 {
 
+    /// @brief Template class for keeping the last signal value in the aggregate.
     template <typename T>
     class sig_last
     {
-        const tr_signal _sig;
-        sig_calc_type<T> _val { 0 };
+        const tr_signal _sig;        ///< The signal to be processed.
+        sig_calc_type<T> _val { 0 }; ///< The last value of the signal.
+
 
     public:
+        /**
+         * @brief Constructor for sig_last.
+         * @param sig The signal to be processed.
+         */
         sig_last(const tr_signal sig)
             : _sig(sig)
         {
         }
 
+        /**
+         * @brief Assembles the signal value.
+         * @param self Reference to the sig_last object.
+         * @param mux_val Multiplexer value.
+         * @param fd Frame data.
+         * @return Encoded signal value.
+         */
         friend std::uint64_t tag_invoke(assemble_cpo, sig_last& self, std::uint64_t mux_val, std::uint64_t fd)
         {
             if (!self._sig.is_active(mux_val))
@@ -57,24 +75,40 @@ namespace can
             return self._sig.encode(val.get_raw());
         }
 
+        /**
+         * @brief Resets the signal value.
+         * @param self Reference to the sig_last object.
+         */
         friend void tag_invoke(reset_cpo, sig_last&)
         {
         }
     };
 
+    /// @brief Template class for computing the average of signal values in the aggregate.
     template <typename T>
     class sig_avg
     {
-        const tr_signal _sig;
-        sig_calc_type<T> _val { 0 };
-        std::uint64_t _num_samples { 0 };
+        const tr_signal _sig;             ///< The signal to be processed.
+        sig_calc_type<T> _val { 0 };      ///< The accumulated value of the signal.
+        std::uint64_t _num_samples { 0 }; ///< The number of samples.
 
     public:
+        /**
+         * @brief Constructor for sig_avg.
+         * @param sig The signal to be processed.
+         */
         sig_avg(const tr_signal sig)
             : _sig(sig)
         {
         }
 
+        /**
+         * @brief Assembles the signal value.
+         * @param self Reference to the sig_avg object.
+         * @param mux_val Multiplexer value.
+         * @param fd Frame data.
+         * @return Encoded average signal value.
+         */
         friend std::uint64_t tag_invoke(assemble_cpo, sig_avg& self, std::uint64_t mux_val, std::uint64_t fd)
         {
             if (!self._sig.is_active(mux_val))
@@ -89,6 +123,10 @@ namespace can
             return self._sig.encode(self._val.idivround(self._num_samples).get_raw());
         }
 
+        /**
+         * @brief Resets the signal value and sample count.
+         * @param self Reference to the sig_avg object.
+         */
         friend void tag_invoke(reset_cpo, sig_avg& self)
         {
             self._val = 0;
@@ -96,6 +134,12 @@ namespace can
         }
     };
 
+    /**
+     * @brief Computes the difference in milliseconds between a CAN time point and a UTC time.
+     * @param tp CAN time point.
+     * @param utc UTC time in seconds.
+     * @return Difference in milliseconds.
+     */
     static std::int32_t millis_diff(can_time tp, std::uint32_t utc)
     {
         using namespace std::chrono;
@@ -152,9 +196,9 @@ namespace can
         {
             auto d = duration_cast<milliseconds>(smsg.stamp - _group_origin);
             if (d < milliseconds(0) || d >= _assemble_freq)
-			{
+            {
                 return false;
-			}
+            }
         }
         return true;
     }
@@ -184,6 +228,11 @@ namespace can
         }
     }
 
+    /**
+     * @brief Creates a signal aggregator based on the signal's value type.
+     * @param sig The signal to be processed.
+     * @return The signal aggregator.
+     */
     template <template <typename> typename sig_agg>
     static sig_asm make_sig_agg(const tr_signal& sig)
     {
@@ -209,9 +258,9 @@ namespace can
         for (const auto& sig : _signals)
         {
             if (sig.mux_val().has_value())
-			{
+            {
                 mux_vals.push_back(sig.mux_val().value());
-			}
+            }
         }
 
         std::sort(mux_vals.begin(), mux_vals.end());
@@ -226,43 +275,43 @@ namespace can
         make_sig_assemblers();
 
         if (_mux.has_value())
-		{
+        {
             for (const auto mux_val : distinct_mux_vals())
-			{
+            {
                 _tx_group->assign(message_id, mux_val);
-			}
-		}
+            }
+        }
         else
-		{
+        {
             _tx_group->assign(message_id, -1);
-		}
+        }
     }
 
     void tr_message::assemble(can_time stamp, can_frame frame)
     {
         if (!_tx_group)
-		{
+        {
             return;
-		}
+        }
 
         if (!_tx_group->within_interval(_last_stamp))
-		{
+        {
             reset_sig_asms();
-		}
+        }
 
         std::uint64_t clumped_val = 0;
         std::uint64_t fd = std::bit_cast<std::uint64_t>(frame.data);
         std::int64_t mux_val = _mux.has_value() ? _mux->decode(fd) : -1;
 
         for (auto& sc : _sig_asms)
-		{
+        {
             clumped_val |= sig_assemble(sc, mux_val, fd);
-		}
+        }
 
         if (_mux.has_value())
-		{
+        {
             clumped_val |= _mux->encode(fd);
-		}
+        }
 
         _tx_group->add_clumped(stamp, frame.can_id, mux_val, clumped_val);
 
@@ -277,17 +326,17 @@ namespace can
             sig_asm sasm;
 
             if (atype == "LAST")
-			{
+            {
                 sasm = make_sig_agg<sig_last>(sig);
-			}
+            }
             else if (atype == "AVG")
-			{
+            {
                 sasm = make_sig_agg<sig_avg>(sig);
-			}
+            }
             else
-			{
+            {
                 continue;
-			}
+            }
 
             _sig_asms.emplace_back(std::move(sasm));
         }
@@ -296,9 +345,9 @@ namespace can
     void tr_message::reset_sig_asms()
     {
         for (auto& sc : _sig_asms)
-		{
+        {
             sig_reset(sc);
-		}
+        }
     }
 
     tr_signal* tr_message::find_signal(const std::string& sig_name)
@@ -311,17 +360,17 @@ namespace can
     void tr_message::sig_agg_type(const std::string& sig_name, const std::string& agg_type)
     {
         if (auto sig = find_signal(sig_name); sig)
-		{
+        {
             sig->agg_type(agg_type);
-		}
+        }
     }
 
     void tr_message::sig_val_type(const std::string& sig_name, unsigned sig_ext_val_type)
     {
         if (auto sig = find_signal(sig_name); sig)
-		{
+        {
             sig->value_type(sig_ext_val_type);
-		}
+        }
     }
 
     void tr_message::add_signal(tr_signal sig)
@@ -337,9 +386,9 @@ namespace can
     bool vin_assembler::decode_some(const can::tr_message& msg, can_frame frame)
     {
         if (frame.can_id != _vin_msg_id)
-		{
+        {
             return false;
-		}
+        }
 
         auto old_bits = _cbits;
         std::uint64_t fd = std::bit_cast<uint64_t>(frame.data);
@@ -347,9 +396,9 @@ namespace can
         {
             int chidx = vin_char(sig.name());
             if (chidx == 0)
-			{
+            {
                 continue;
-			}
+            }
             _vin[chidx - 1] = char(sig.decode(fd));
             _cbits |= (1 << (chidx - 1));
         }
@@ -359,14 +408,14 @@ namespace can
     int vin_assembler::vin_char(std::string_view sig_name)
     {
         if (sig_name.find_first_of("VIN") != 0)
-		{
+        {
             return 0;
-		}
+        }
         auto rb = sig_name.rbegin();
         while (rb != sig_name.rend() && std::isdigit(*rb))
-		{
+        {
             ++rb;
-		}
+        }
         return std::stoi(sig_name.data() + std::distance(rb, sig_name.rend()));
     }
 
@@ -380,9 +429,9 @@ namespace can
         {
             store_assembled(_last_update_tp + _update_freq);
             while (_last_update_tp + _update_freq <= stamp)
-			{
+            {
                 _last_update_tp += _update_freq;
-			}
+            }
         }
 
         can_time frame_begin { seconds(_frame_packet.utc()) };
@@ -393,9 +442,9 @@ namespace can
         if (stamp < frame_begin || stamp >= frame_end)
         {
             if (!_frame_packet.empty())
-			{
+            {
                 rv = std::move(_frame_packet);
-			}
+            }
             _frame_packet.prepare(duration_cast<seconds>(stamp.time_since_epoch()).count());
         }
 
@@ -414,25 +463,25 @@ namespace can
         using namespace std::chrono;
 
         if (_last_update_tp != can_time {})
-		{
+        {
             return;
-		}
+        }
 
         _frame_packet.prepare(duration_cast<seconds>(first_stamp.time_since_epoch()).count());
         _last_update_tp = first_stamp;
 
         for (auto& txg : _tx_groups)
-		{
+        {
             txg->time_begin(_last_update_tp);
-		}
+        }
     }
 
     void v2c_transcoder::store_assembled(can_time up_to)
     {
         for (auto& txg : _tx_groups)
-		{
+        {
             txg->try_publish(up_to, _frame_packet);
-		}
+        }
     }
 
     // helper methods for dbc_parser, to initialize the transcoder structures:
@@ -446,44 +495,44 @@ namespace can
     void v2c_transcoder::assign_tx_group(
         const std::string& object_type, unsigned message_id, const std::string& tx_group)
     {
-		(void) object_type;
+        (void)object_type;
 
         auto grp_it
             = std::find_if(_tx_groups.begin(), _tx_groups.end(), [&](const auto& g) { return g->name() == tx_group; });
 
         if (grp_it == _tx_groups.end())
-		{
+        {
             return;
-		}
+        }
 
         if (auto msg_ptr = find_message(message_id); msg_ptr)
-		{
+        {
             msg_ptr->assign_group(grp_it->get(), message_id);
-		}
+        }
     }
 
     void v2c_transcoder::add_signal(canid_t message_id, tr_signal sig)
     {
         if (auto msg_ptr = find_message(message_id); msg_ptr)
-		{
+        {
             msg_ptr->add_signal(std::move(sig));
-		}
+        }
     }
 
     void v2c_transcoder::add_muxer(canid_t message_id, tr_muxer mux)
     {
         if (auto msg_ptr = find_message(message_id); msg_ptr)
-		{
+        {
             msg_ptr->add_muxer(std::move(mux));
-		}
+        }
     }
 
     void v2c_transcoder::add_message(canid_t message_id, std::string_view message_name)
     {
         if (message_name == "VIN")
-		{
+        {
             _vin.vin_message_id(message_id);
-		}
+        }
         _msgs.try_emplace(message_id);
     }
 
@@ -508,17 +557,17 @@ namespace can
     void v2c_transcoder::set_sig_val_type(canid_t message_id, const std::string& sig_name, unsigned sig_ext_val_type)
     {
         if (auto msg_ptr = find_message(message_id); msg_ptr)
-		{
+        {
             msg_ptr->sig_val_type(sig_name, sig_ext_val_type);
-		}
+        }
     }
 
     void v2c_transcoder::set_sig_agg_type(canid_t message_id, const std::string& sig_name, const std::string& agg_type)
     {
         if (auto msg_ptr = find_message(message_id); msg_ptr)
-		{
+        {
             msg_ptr->sig_agg_type(sig_name, agg_type);
-		}
+        }
     }
 
 } // end namespace can

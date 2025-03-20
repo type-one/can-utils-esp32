@@ -16,7 +16,7 @@
 // A C++ DBC file parser, and a CAN telemetry tool, adapted for                //
 // ESP32 micro-controller, forked and modified from MIREO version at           //
 // https://github.com/mireo/can-utils                                          //
-//-----------------------------------------------------------------------------// 
+//-----------------------------------------------------------------------------//
 
 #pragma once
 
@@ -188,13 +188,49 @@ namespace can
         {
             _group_origin = tp;
         }
+
+        /**
+         * @brief Attempts to publish the collected CAN frames up to a specified time point.
+         * @param up_to The time point up to which frames should be published.
+         * @param fp The frame packet to which frames are appended.
+         */
         void try_publish(can_time up_to, frame_packet& fp);
 
     private:
+        /**
+         * @brief Publishes the collected CAN frames.
+         * @param tp The time point at which frames are published.
+         * @param fp The frame packet to which frames are appended.
+         */
         void publish(can_time tp, frame_packet& fp);
+
+        /**
+         * @brief Checks if all messages in the group have been collected within the interval.
+         * @return True if all messages have been collected, false otherwise.
+         */
         bool all_collected() const;
+
+        /**
+         * @brief Assigns a message ID and multiplexer value to the group.
+         * @param message_id The message ID.
+         * @param message_mux The multiplexer value.
+         */
         void assign(canid_t message_id, std::int64_t message_mux);
+
+        /**
+         * @brief Checks if a timestamp is within the group's interval.
+         * @param stamp The timestamp to check.
+         * @return True if the timestamp is within the interval, false otherwise.
+         */
         bool within_interval(can_time stamp) const;
+
+        /**
+         * @brief Adds a clumped message to the group.
+         * @param stamp The timestamp of the message.
+         * @param message_id The message ID.
+         * @param message_mux The multiplexer value.
+         * @param cval The clumped value.
+         */
         void add_clumped(can_time stamp, canid_t message_id, std::int64_t message_mux, std::uint64_t cval);
     };
 
@@ -208,12 +244,44 @@ namespace can
         can_time _last_stamp;
 
     public:
+        /**
+         * @brief Assigns a group to the message.
+         * @param txg The group to be assigned.
+         * @param message_id The message ID.
+         */
         void assign_group(tx_group* txg, std::uint32_t message_id);
+
+        /**
+         * @brief Assembles the message from the CAN frame.
+         * @param stamp The timestamp of the frame.
+         * @param frame The CAN frame.
+         */
         void assemble(can_time stamp, can_frame frame);
 
+        /**
+         * @brief Sets the aggregation type for a signal.
+         * @param sig_name The name of the signal.
+         * @param agg_type The aggregation type.
+         */
         void sig_agg_type(const std::string& sig_name, const std::string& agg_type);
+
+        /**
+         * @brief Sets the value type for a signal.
+         * @param sig_name The name of the signal.
+         * @param sig_ext_val_type The external value type.
+         */
         void sig_val_type(const std::string& sig_name, unsigned sig_ext_val_type);
+
+        /**
+         * @brief Adds a signal to the message.
+         * @param sig The signal to be added.
+         */
         void add_signal(tr_signal sig);
+
+        /**
+         * @brief Adds a multiplexer to the message.
+         * @param mux The multiplexer to be added.
+         */
         void add_muxer(tr_muxer mux);
 
         auto signals(std::uint64_t fd) const
@@ -224,9 +292,27 @@ namespace can
         }
 
     private:
+        /**
+         * @brief Creates signal assemblers for the message.
+         */
         void make_sig_assemblers();
+
+        /**
+         * @brief Resets the signal assemblers.
+         */
         void reset_sig_asms();
+
+        /**
+         * @brief Finds a signal by its name.
+         * @param sig_name The name of the signal.
+         * @return Pointer to the signal if found, nullptr otherwise.
+         */
         tr_signal* find_signal(const std::string& sig_name);
+
+        /**
+         * @brief Gets the distinct multiplexer values from the message's signals.
+         * @return A vector of distinct multiplexer values.
+         */
         std::vector<std::uint64_t> distinct_mux_vals() const;
     };
 
@@ -251,9 +337,20 @@ namespace can
             _vin_msg_id = id;
         }
 
+        /**
+         * @brief Decodes some VIN characters from the CAN frame.
+         * @param msg The message containing the signals.
+         * @param frame The CAN frame.
+         * @return True if new characters were decoded, false otherwise.
+         */
         bool decode_some(const can::tr_message& msg, can_frame frame);
 
     private:
+        /**
+         * @brief Gets the character index for a VIN signal.
+         * @param sig_name The name of the signal.
+         * @return The character index, or 0 if not a VIN signal.
+         */
         static int vin_char(std::string_view sig_name);
     };
 
@@ -270,23 +367,88 @@ namespace can
         can_time _last_update_tp;
 
     public:
+        /**
+         * @brief Transcodes a CAN frame to a frame packet.
+         * @param stamp The timestamp of the frame.
+         * @param frame The CAN frame.
+         * @return The frame packet.
+         */
         frame_packet transcode(can_time stamp, can_frame frame);
+
         std::string vin() const
         {
             return _vin.value();
         }
 
+        /**
+         * @brief Assigns a transmission group to a message.
+         * @param object_type The type of the object.
+         * @param message_id The message ID.
+         * @param tx_group The transmission group.
+         */
         void assign_tx_group(const std::string& object_type, unsigned message_id, const std::string& tx_group);
+
+        /**
+         * @brief Adds a signal to a message.
+         * @param message_id The message ID.
+         * @param sig The signal to be added.
+         */
         void add_signal(canid_t message_id, tr_signal sig);
+
+        /**
+         * @brief Adds a multiplexer to a message.
+         * @param message_id The message ID.
+         * @param mux The multiplexer to be added.
+         */
         void add_muxer(canid_t message_id, tr_muxer mux);
+
+        /**
+         * @brief Adds a message to the transcoder.
+         * @param message_id The message ID.
+         * @param message_name The name of the message.
+         */
         void add_message(canid_t message_id, std::string_view message_name);
 
+        /**
+         * @brief Sets an environment variable for the transcoder.
+         * @param name The name of the environment variable.
+         * @param ev_value The value of the environment variable.
+         */
         void set_env_var(const std::string& name, std::int64_t ev_value);
+
+        /**
+         * @brief Sets the value type for a signal in a message.
+         * @param message_id The message ID.
+         * @param sig_name The name of the signal.
+         * @param sig_ext_val_type The external value type.
+         */
         void set_sig_val_type(canid_t message_id, const std::string& sig_name, unsigned sig_ext_val_type);
+
+        /**
+         * @brief Sets the aggregation type for a signal in a message.
+         * @param message_id The message ID.
+         * @param sig_name The name of the signal.
+         * @param agg_type The aggregation type.
+         */
         void set_sig_agg_type(canid_t message_id, const std::string& sig_name, const std::string& agg_type);
 
+        /**
+         * @brief Sets up timers for the transcoder.
+         * @param first_stamp The first timestamp.
+         */
         void setup_timers(can_time first_stamp);
+
+        /**
+         * @brief Stores the assembled CAN frames up to a specified time point.
+         * @param up_to The time point up to which frames should be stored.
+         */
         void store_assembled(can_time up_to);
+
+        /**
+         * @brief Finds a message by its ID.
+         * @param message_id The message ID.
+         * @return Pointer to the message if found, nullptr otherwise.
+         */
         tr_message* find_message(canid_t message_id);
     };
 
@@ -297,12 +459,12 @@ namespace can
         char sg_byte_order, char sg_sign, double sg_factor, double sg_offset, double sg_min, double /*sg_max*/,
         std::string sg_unit, std::vector<size_t> rec_ords)
     {
-		(void) sg_factor;
-		(void) sg_offset;
-		(void) sg_min;
-		(void) sg_unit;
-		(void) rec_ords;
-		
+        (void)sg_factor;
+        (void)sg_offset;
+        (void)sg_min;
+        (void)sg_unit;
+        (void)rec_ords;
+
         sig_codec codec { sg_start_bit, sg_size, sg_byte_order, sg_sign };
         tr_signal sig { sg_name, codec, std::optional<std::int64_t>(sg_mux_switch_val) };
         this_.add_signal(message_id, std::move(sig));
@@ -312,9 +474,9 @@ namespace can
         unsigned sg_start_bit, unsigned sg_size, char sg_byte_order, char sg_sign, std::string sg_unit,
         std::vector<size_t> rec_ords)
     {
-		(void)sg_name;
-		(void)sg_unit;
-		(void)rec_ords;
+        (void)sg_name;
+        (void)sg_unit;
+        (void)rec_ords;
         sig_codec codec { sg_start_bit, sg_size, sg_byte_order, sg_sign };
         tr_muxer mux { codec };
         this_.add_muxer(message_id, std::move(mux));
@@ -323,8 +485,8 @@ namespace can
     inline void tag_invoke(def_bo_cpo, v2c_transcoder& this_, std::uint32_t message_id, std::string msg_name,
         std::size_t msg_size, std::size_t transmitter_ord)
     {
-		(void) msg_size;
-		(void) transmitter_ord;
+        (void)msg_size;
+        (void)transmitter_ord;
         this_.add_message(message_id, std::move(msg_name));
     }
 
@@ -332,31 +494,32 @@ namespace can
         double ev_max, std::string unit, double initial, unsigned ev_id, std::string access_type,
         std::vector<std::size_t> access_nodes_ords)
     {
-		(void) type;
-		(void) ev_min;
-		(void) ev_max;
-		(void) unit;
-		(void) ev_id;
-		(void) access_type;
-		(void) access_nodes_ords;
+        (void)type;
+        (void)ev_min;
+        (void)ev_max;
+        (void)unit;
+        (void)ev_id;
+        (void)access_type;
+        (void)access_nodes_ords;
 
         this_.set_env_var(name, initial);
     }
 
     inline void tag_invoke(def_ba_cpo, v2c_transcoder& this_, std::string attr_name, std::string object_type,
-        std::string object_name, std::size_t bu_id, unsigned message_id, std::variant<std::int32_t, double, std::string> attr_val)
+        std::string object_name, std::size_t bu_id, unsigned message_id,
+        std::variant<std::int32_t, double, std::string> attr_val)
     {
-		(void) bu_id;
+        (void)bu_id;
 
         if (attr_name == "AggType" && attr_val.index() == 2)
-		{
+        {
             this_.set_sig_agg_type(message_id, object_name, std::get<std::string>(attr_val));
-		}
+        }
 
         if (attr_name == "TxGroupFreq" && object_type == "BO_")
-		{
+        {
             this_.assign_tx_group(object_type, message_id, std::get<std::string>(attr_val));
-		}	
+        }
     }
 
     inline void tag_invoke(def_sig_valtype_cpo, v2c_transcoder& this_, unsigned message_id, std::string sig_name,
