@@ -895,6 +895,13 @@ namespace mireo
                 state* _state;
             };
 
+            /**
+             * @brief A template struct that defines a concrete type inheriting from a base class and
+             *        multiple forwarding tag invoke classes.
+             *
+             * @tparam CPOs Variadic template parameter pack representing the types of the forwarding
+             *              tag invoke classes.
+             */
             template <typename... CPOs>
             struct concrete final
             {
