@@ -11,9 +11,33 @@
  * @file any.hpp
  * @brief This file contains the implementation of a type-erasing wrapper for various callable objects.
  *
- * It provides the `any`, `any_copyable`, `any_function`, and `any_copyable_function` templates
+ * This acts as the type-erased wrapper. It can hold any object, regardless of its type, as long as it 
+ * satisfies the behavioral interface defined by the wrapper.
+ * Inside, it often uses techniques like storing a pointer to an abstract concept object, which delegates 
+ * calls to the concrete implementation. 
+ * 
+ * This file provides the `any`, `any_copyable`, `any_function`, and `any_copyable_function` templates
  * for type-erased storage and invocation of callable objects.
+ * 
+ * Type erasure is an advanced C++ design pattern that allows you to abstract away the concrete type of 
+ * an object while maintaining its behavior. It essentially enables polymorphism without requiring 
+ * inheritance or virtual functions.
+ * 
+ * Principle of Type Erasure
+ * 
+ * In type erasure:
  *
+ * - Encapsulation of Type-Specific Logic: You define a wrapper (like any.hpp in this case) that hides the 
+ *   underlying type of the object it holds. This wrapper provides a uniform interface for interacting with the object.
+ * - Behavioral Polymorphism: The behavior is preserved using a set of operations defined in the wrapper, like method 
+ *   calls, without exposing the actual type.
+ * - No Dependency on Base Classes: Unlike traditional polymorphism, type erasure doesn't rely on inheritance or 
+ *   virtual function tables (vtables). Instead, it uses a combination of templates and dynamic memory allocation 
+ *   to achieve its goal.
+ *
+ * Think of it like a "type-neutral box" where you can store objects of different types, but interact with them 
+ * uniformly.
+ * 
  * @see https://github.com/facebookexperimental/libunifex/blob/main/doc/type_erasure.md
  */
 

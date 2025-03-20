@@ -11,6 +11,11 @@
  * @file tag_invoke.hpp
  * @brief Provides utilities for Tag Invoke customization point.
  *
+ * This is used to customize behavior for operations in a highly generic way. It’s part of the "customization point" 
+ * mechanism, a concept often used in advanced C++ libraries to allow extension without modifying the original code.
+ * The tag_invoke function essentially provides a hook to intercept operations and forward them to the appropriate 
+ * implementation based on the types.
+ * 
  * This header file contains the implementation of the tag_invoke customization point,
  * which allows for the customization of behavior for specific types through the use of
  * a customization point object (CPO). The implementation is based on the proposal
@@ -23,6 +28,21 @@
  *   point object.
  * - Various type traits and concepts to check the invocability and noexcept properties
  *   of tag_invoke.
+ * 
+ * Principle of Type Erasure
+ * 
+ * In type erasure:
+ *
+ * - Encapsulation of Type-Specific Logic: You define a wrapper (like any.hpp in this case) that hides the 
+ *   underlying type of the object it holds. This wrapper provides a uniform interface for interacting with the object.
+ * - Behavioral Polymorphism: The behavior is preserved using a set of operations defined in the wrapper, like method 
+ *   calls, without exposing the actual type.
+ * - No Dependency on Base Classes: Unlike traditional polymorphism, type erasure doesn't rely on inheritance or 
+ *   virtual function tables (vtables). Instead, it uses a combination of templates and dynamic memory allocation 
+ *   to achieve its goal.
+ *
+ * Think of it like a "type-neutral box" where you can store objects of different types, but interact with them 
+ * uniformly.
  *
  * @note This implementation is optimized for compile-time performance and does not
  * rely on the generality of the standard library's invoke_result and is_invocable traits.
