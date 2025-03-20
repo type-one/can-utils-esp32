@@ -104,10 +104,23 @@ namespace mireo
     // this_
     //
 
+    /**
+     * @brief A marker type used for type erasure.
+     *
+     * This struct is used to represent the type-erased `this` pointer in various type-erasure
+     * utilities and mechanisms.
+     */
     struct this_
     {
     };
 
+    /**
+     * @brief A type trait to check if a type is `this_`.
+     *
+     * This type trait is used to determine if a given type is `this_` or a reference to `this_`.
+     * It provides a `constexpr` boolean value `is_this_v` which is `true` for `this_` and its
+     * references, and `false` otherwise.
+     */
     template <typename T>
     inline constexpr bool is_this_v = false;
     template <>
@@ -125,7 +138,15 @@ namespace mireo
 
     namespace detail
     {
-
+        /**
+         * @brief A utility function template to ignore unused variables.
+         *
+         * This function template is used to suppress compiler warnings about unused variables.
+         * It takes a single parameter of any type and does nothing with it.
+         *
+         * @tparam T The type of the variable to be ignored.
+         * @param value The variable to be ignored.
+         */
         struct _ignore
         {
             template <typename T>
@@ -134,9 +155,34 @@ namespace mireo
             }
         };
 
+        /**
+         * @brief Template struct for type replacement.
+         *
+         * This is a template struct used as a placeholder for type replacement.
+         * The actual type to be replaced should be specified when the template is instantiated.
+         *
+         * @tparam T The type to be replaced.
+         */
         template <typename>
         struct _replace_this;
 
+        /**
+         * @brief Specialization of the _replace_this template for void type.
+         *
+         * This struct provides a mechanism to replace a placeholder type with a given argument type.
+         * It contains two members:
+         *
+         * 1. `apply`: A template alias that takes two template parameters and resolves to the first parameter.
+         *    This is used to replace the placeholder type with the actual argument type.
+         *
+         * 2. `get`: A static member function that takes an argument of any type and an _ignore type.
+         *    It returns the argument as an rvalue reference.
+         *
+         * @tparam Arg The type of the argument to be returned.
+         * @param arg The argument to be returned.
+         * @param _ignore A placeholder parameter that is ignored.
+         * @return The argument passed to the function as an rvalue reference.
+         */
         template <>
         struct _replace_this<void>
         {
@@ -150,12 +196,37 @@ namespace mireo
             }
         };
 
+        /**
+         * @brief Specialization of the _replace_this template for the this_ type.
+         *
+         * This struct provides a mechanism to replace a type with another type and to retrieve an object.
+         *
+         * @tparam this_ The type to be replaced.
+         */
         template <>
         struct _replace_this<this_>
         {
+            /**
+             * @brief Alias template to replace a type with another type.
+             *
+             * This alias template takes two types as parameters and aliases the second type.
+             *
+             * @tparam Unused An unused template parameter.
+             * @tparam T The type to be used as the replacement.
+             */
             template <typename, typename T>
             using apply = T;
 
+            /**
+             * @brief Retrieves an object of type T.
+             *
+             * This static function takes an ignored parameter and an object of type T, and returns the object.
+             *
+             * @tparam T The type of the object to be retrieved.
+             * @param _ignore An ignored parameter.
+             * @param obj The object to be retrieved.
+             * @return T&& The retrieved object.
+             */
             template <typename T>
             static T&& get(_ignore, T& obj) noexcept
             {
@@ -163,6 +234,13 @@ namespace mireo
             }
         };
 
+        /**
+         * @brief Specialization of the _replace_this struct for reference types.
+         *
+         * This struct provides a mechanism to replace a placeholder type with a reference type.
+         *
+         * @tparam this_& Placeholder type to be replaced.
+         */
         template <>
         struct _replace_this<this_&>
         {
@@ -176,6 +254,19 @@ namespace mireo
             }
         };
 
+        /**
+         * @brief Specialization of the _replace_this template for rvalue references.
+         *
+         * This struct provides a mechanism to replace a type with an rvalue reference
+         * to that type. It contains two member templates:
+         *
+         * 1. `apply`: A template alias that takes two template parameters and aliases
+         *    the second parameter as an rvalue reference.
+         * 2. `get`: A static member function that takes an ignored parameter and an
+         *    object of type T, and returns the object as an rvalue reference.
+         *
+         * @tparam this_&& The type to be replaced with an rvalue reference.
+         */
         template <>
         struct _replace_this<this_&&>
         {
@@ -189,12 +280,33 @@ namespace mireo
             }
         };
 
+        /**
+         * @brief Specialization of the _replace_this template for const references.
+         *
+         * This struct provides a mechanism to replace a placeholder type with a const reference to another type.
+         *
+         * @tparam this_ Placeholder type to be replaced.
+         */
         template <>
         struct _replace_this<const this_&>
         {
+            /**
+             * @brief Alias template to replace the placeholder type with a const reference to another type.
+             *
+             * @tparam Unused Placeholder template parameter.
+             * @tparam T Type to replace the placeholder with.
+             */
             template <typename, typename T>
             using apply = const T&;
 
+            /**
+             * @brief Function to return a const reference to an object.
+             *
+             * @tparam T Type of the object.
+             * @param _ignore Unused parameter.
+             * @param obj Object to return a const reference to.
+             * @return const T& Const reference to the object.
+             */
             template <typename T>
             static const T& get(_ignore, T& obj) noexcept
             {
@@ -202,6 +314,13 @@ namespace mireo
             }
         };
 
+        /**
+         * @brief Specialization of the _replace_this template for const rvalue references.
+         *
+         * This struct provides a way to replace a type with a const rvalue reference to another type.
+         *
+         * @tparam this_ The type to be replaced.
+         */
         template <>
         struct _replace_this<const this_&&>
         {
@@ -227,6 +346,14 @@ namespace mireo
         template <typename Arg>
         using replace_this_with_void_ptr_t = std::conditional_t<is_this_v<Arg>, void*, Arg>;
 
+        /**
+         * @brief A helper struct template to extract the first element from a parameter pack.
+         *
+         * This struct template is used to extract the first element from a parameter pack.
+         * It provides an `operator()` that takes a parameter pack and returns the first element.
+         *
+         * @tparam bool... Variadic boolean template parameters (not used in the implementation).
+         */
         template <bool...>
         struct _extract_this
         {
@@ -237,6 +364,14 @@ namespace mireo
             }
         };
 
+        /**
+         * @brief Specialization of the _extract_this struct for the case where the first template parameter is false.
+         *
+         * This struct is used to recursively extract elements from a parameter pack based on a sequence of boolean
+         * values.
+         *
+         * @tparam IsThis A parameter pack of boolean values indicating which elements to extract.
+         */
         template <bool... IsThis>
         struct _extract_this<false, IsThis...>
         {
@@ -248,6 +383,14 @@ namespace mireo
             }
         };
 
+        /**
+         * @brief Alias template that extracts the type from a parameter pack.
+         *
+         * This alias template uses the helper template `_extract_this` to extract the type
+         * from a parameter pack `Ts` where `is_this_v<Ts>` is true.
+         *
+         * @tparam Ts Parameter pack of types to be checked.
+         */
         template <typename... Ts>
         using extract_this = _extract_this<is_this_v<Ts>...>;
 
@@ -255,6 +398,15 @@ namespace mireo
         // overload
         //
 
+        /**
+         * @brief A template struct that defines a type for a customization point object (CPO) and its associated
+         * signature (Sig).
+         *
+         * This struct is used to create a type that can be specialized for different CPOs and their signatures.
+         *
+         * @tparam CPO The customization point object.
+         * @tparam Sig The signature associated with the customization point object.
+         */
         template <typename CPO, typename Sig>
         struct _cpo_t
         {
@@ -275,26 +427,71 @@ namespace mireo
             using type_erased_signature_t = Sig;
         };
 
+        /**
+         * @brief A template struct that defines a base customization point object (CPO).
+         *
+         * This struct is used to define a base type for a given customization point object (CPO).
+         * The `Enable` template parameter is provided for SFINAE (Substitution Failure Is Not An Error) purposes,
+         * allowing for conditional specialization of the struct.
+         *
+         * @tparam CPO The customization point object type.
+         * @tparam Enable A type used for SFINAE, defaulting to `void`.
+         */
         template <typename CPO, typename Enable = void>
         struct base_cpo
         {
             using type = CPO;
         };
 
+        /**
+         * @brief Specialization of the base_cpo struct template.
+         *
+         * This specialization is used when the provided CPO (Customization Point Object)
+         * has a nested type named `base_cpo_t`. It defines a member type alias `type`
+         * that is equivalent to `CPO::base_cpo_t`.
+         *
+         * @tparam CPO The Customization Point Object type.
+         */
         template <typename CPO>
         struct base_cpo<CPO, std::void_t<typename CPO::base_cpo_t>>
         {
             using type = typename CPO::base_cpo_t;
         };
 
+        /**
+         * @brief Inline constexpr variable template for customization point objects (CPOs).
+         *
+         * This template defines an inline constexpr variable `_cpo` that is used to
+         * represent a customization point object (CPO) for a given type `CPO` and
+         * signature `Sig`. The type of `_cpo` is determined by the nested type `type`
+         * within the `_cpo_t` template specialization for the given `CPO` and `Sig`.
+         *
+         * @tparam CPO The type of the customization point object.
+         * @tparam Sig The signature associated with the customization point object.
+         */
         template <typename CPO, typename Sig>
         inline constexpr typename _cpo_t<CPO, Sig>::type _cpo {};
 
+        /**
+         * @brief Template struct to define a signature type.
+         *
+         * This template struct is used to define a signature type based on the provided
+         * template parameter `Sig`.
+         *
+         * @tparam Sig The type of the signature.
+         */
         template <typename Sig>
         struct _sig
         {
         };
 
+        /**
+         * @brief A template variable that defines a constant signature.
+         *
+         * This template variable is used to create a constant signature object of type `_sig<Sig>`.
+         *
+         * @tparam Sig The type of the signature.
+         */
         template <typename Sig>
         inline constexpr _sig<Sig> const sig {};
 
@@ -305,6 +502,22 @@ namespace mireo
         // vtable
         //
 
+        /**
+         * @brief Invokes a callable object (CPO) using a virtual table mechanism.
+         *
+         * This function extracts the `this` pointer from the provided arguments and
+         * invokes the callable object (CPO) with the arguments, replacing the `this`
+         * pointer in the arguments with the actual object pointer.
+         *
+         * @tparam CPO The type of the callable object.
+         * @tparam T The type of the object pointed to by the `this` pointer.
+         * @tparam Ret The return type of the callable object.
+         * @tparam Args The types of the arguments passed to the callable object.
+         * @param cpo The callable object to be invoked.
+         * @param args The arguments to be passed to the callable object.
+         * @return The result of invoking the callable object with the provided arguments.
+         * @note This function is marked noexcept, indicating that it does not throw exceptions.
+         */
         template <typename CPO, typename T, typename Ret, typename... Args>
         Ret _vtable_invoke(CPO cpo, replace_this_with_void_ptr_t<Args>... args) noexcept
         {
@@ -312,20 +525,58 @@ namespace mireo
             return ((CPO &&) cpo)(replace_this<Args>::get((decltype(args)&&)args, *static_cast<T*>(this_ptr))...);
         }
 
+        /**
+         * @brief A template class representing a vtable entry.
+         *
+         * This class template is used to define a vtable entry for a given customization point object (CPO)
+         * and its associated type-erased signature.
+         *
+         * @tparam CPO The customization point object type.
+         * @tparam Sig The type-erased signature associated with the CPO. Defaults to `typename
+         * CPO::type_erased_signature_t`.
+         */
         template <typename CPO, typename Sig = typename CPO::type_erased_signature_t>
         class vtable_entry;
 
+        /**
+         * @brief A class template representing a vtable entry for a callable object.
+         *
+         * This class template is specialized for callable objects with a noexcept specifier.
+         *
+         * @tparam CPO The callable object type.
+         * @tparam Ret The return type of the callable object.
+         * @tparam Args The argument types of the callable object.
+         */
         template <typename CPO, typename Ret, typename... Args>
         class vtable_entry<CPO, Ret(Args...) noexcept>
         {
         public:
+            /**
+             * @brief Type alias for the function pointer type.
+             *
+             * This alias represents a function pointer type that takes a base customization
+             * point object and a variable number of arguments, and returns a value of type Ret.
+             */
             using fn_t = Ret(base_cpo_t<CPO>, replace_this_with_void_ptr_t<Args>...) noexcept;
 
+            /**
+             * @brief Retrieves the stored function pointer.
+             *
+             * @return fn_t* The stored function pointer.
+             */
             constexpr fn_t* get() const noexcept
             {
                 return _fn;
             }
 
+            /**
+             * @brief Creates a vtable entry for a given type.
+             *
+             * This static function creates a vtable entry for a callable object of type T.
+             *
+             * @tparam T The type of the callable object.
+             * @return vtable_entry The created vtable entry.
+             */
             template <typename T>
             static constexpr vtable_entry create() noexcept
             {
@@ -333,12 +584,19 @@ namespace mireo
             }
 
         private:
+            /**
+             * @brief Constructs a vtable entry with a given function pointer.
+             *
+             * This constructor initializes the vtable entry with the provided function pointer.
+             *
+             * @param fn The function pointer to store in the vtable entry.
+             */
             explicit constexpr vtable_entry(fn_t* fn) noexcept
                 : _fn(fn)
             {
             }
 
-            fn_t* _fn;
+            fn_t* _fn; ///< The stored function pointer.
         };
 
         template <typename CPO, typename Ret, typename... Args>
@@ -568,6 +826,17 @@ namespace mireo
             using type = typename concrete<CPOs...>::type;
         };
 
+        /**
+         * @brief Alias template for heap-allocated storage of any type with custom allocator and customization points.
+         *
+         * This alias template defines a type for storing any type `T` using a specified allocator `Allocator`
+         * and additional customization points `CPOs`. The actual type is determined by the implementation
+         * of `_any_heap_allocated_storage`.
+         *
+         * @tparam T The type to be stored.
+         * @tparam Allocator The allocator type to be used for memory management.
+         * @tparam CPOs Additional customization points.
+         */
         template <typename T, typename Allocator, typename... CPOs>
         using any_heap_allocated_storage = typename _any_heap_allocated_storage<T, Allocator>::template type<CPOs...>;
 
@@ -576,6 +845,16 @@ namespace mireo
         //
 
         struct _destroy_cpo
+        /**
+         * @brief A functor that calls the destructor of the given object.
+         *
+         * This functor uses a type-erased signature to call the destructor
+         * of the object passed to it. The destructor is called in a noexcept
+         * context to ensure that no exceptions are thrown.
+         *
+         * @tparam T The type of the object whose destructor is to be called.
+         * @param object The object whose destructor is to be called.
+         */
         {
             using type_erased_signature_t = void(this_&) noexcept;
 
@@ -588,8 +867,24 @@ namespace mireo
 
         struct _move_construct_cpo
         {
+            /**
+             * @brief A type-erased function signature type alias.
+             *
+             * This alias represents a function signature that takes a void pointer and an rvalue reference to an object
+             * of type `this_`.
+             */
             using type_erased_signature_t = void(void* p, this_&& src) noexcept;
 
+            /**
+             * @brief Functor to construct an object of type T at the given memory location.
+             *
+             * This operator template constructs an object of type T at the memory location pointed to by `p` using the
+             * provided rvalue reference `src`.
+             *
+             * @tparam T The type of the object to be constructed.
+             * @param p Pointer to the memory location where the object should be constructed.
+             * @param src Rvalue reference to the object to be constructed.
+             */
             template <typename T>
             void operator()(void* p, T&& src) const noexcept
             {
