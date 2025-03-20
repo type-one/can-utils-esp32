@@ -436,13 +436,40 @@ namespace can
         def_ba_def_float, def_ba_def_string, def_ba_def_def, def_ba, def_sg, def_sg_mux, def_val_env, def_val_sg,
         def_val_table, def_sig_valtype, def_bo_tx_bu, def_sg_mul_val>;
 
-    /**
-     * @brief Parses the entire DBC file.
-     *
-     * @param dbc_src The DBC file source.
-     * @param ipt The interpreter.
-     * @return true if parsing was successful, false otherwise.
-     */
+	/**
+	 * @brief Parses a DBC (Database Container) file.
+	 * 
+	 * This function parses various sections of a DBC file, which is used in the automotive industry 
+	 * to describe the data being transmitted over a CAN (Controller Area Network) bus.
+	 * 
+	 * @param dbc_src The source content of the DBC file.
+	 * @param ipt The interpreter object used for parsing.
+	 * @return true if parsing is successful, false otherwise.
+	 * 
+	 * The function parses the following sections in order:
+	 * 
+	 * - VERSION: Specifies the version of the DBC file format.
+	 * - NS_: Defines new symbols used in the DBC file.
+	 * - BS_: Defines the bit timing parameters for the CAN network.
+	 * - BU_: Lists the nodes (ECUs) in the network.
+	 * - VAL_TABLE_: Defines value tables for signal encoding.
+	 * - BO_: Defines messages (frames) transmitted on the CAN bus.
+	 * - BO_TX_BU_: Defines which nodes transmit which messages.
+	 * - EV_: Defines environment variables used in the DBC file.
+	 * - ENVVAR_DATA_: Defines data for environment variables.
+	 * - VAL_: Defines value descriptions for signals.
+	 * - SGTYPE_: Defines signal types.
+	 * - SIG_GROUP_: Defines signal groups.
+	 * - CM_: Contains comments for various elements in the DBC file.
+	 * - BA_DEF_: Defines attribute definitions.
+	 * - BA_DEF_DEF_: Defines default values for attributes.
+	 * - BA_: Defines attribute values.
+	 * - VAL_ (again): Defines value descriptions for signals (repeated section).
+	 * - SIG_VALTYPE_: Defines signal value types.
+	 * - SG_MUL_VAL_: Defines multiplexed signal values.
+	 * 
+	 * The function also checks for any remaining unparsed content at the end.
+	 */
     bool parse_dbc(std::string_view dbc_src, interpreter ipt);
 
 } // end namespace can
