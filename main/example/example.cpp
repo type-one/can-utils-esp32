@@ -9,6 +9,37 @@
 // https://github.com/mireo/can-utils                                          //
 //-----------------------------------------------------------------------------//
 
+/**
+ * @file example.cpp
+ * @brief Example DBC file for parsing CAN data, aggregating signals, and publishing aggregated frames.
+ *
+ * This file contains the definition of CAN messages and signals for a vehicle's CAN bus system.
+ * It includes the following components:
+ * - CAN messages with their respective signals
+ * - Signal properties such as bit length, byte order, scaling, and units
+ * - Event definitions for transmission frequencies
+ * - Attribute definitions for signal aggregation types and transmission group frequencies
+ *
+ * The DBC file defines the following CAN messages:
+ * - GPSLatLong: Contains GPS accuracy, longitude, and latitude signals.
+ * - GPSAltitude: Contains GPS altitude signal.
+ * - SOC: Contains state of charge (SOC) average signal.
+ * - GPSSpeed: Contains GPS speed signal.
+ * - BatteryCurrent: Contains raw battery current, smoothed battery current, and battery voltage signals.
+ * - PowerState: Contains power state signal.
+ *
+ * The following events are defined for transmission frequencies:
+ * - V2CTxTime: Transmission time for V2C.
+ * - GPSGroupTxFreq: Transmission frequency for GPS group.
+ * - EnergyGroupTxFreq: Transmission frequency for energy group.
+ *
+ * The following attributes are defined for signal aggregation types:
+ * - AggType: Defines the aggregation type for each signal (e.g., LAST, AVG).
+ *
+ * The following attributes are defined for transmission group frequencies:
+ * - TxGroupFreq: Defines the transmission group frequency for each CAN message.
+ */
+
 // Example modified from https://github.com/mireo/can-utils
 /*==========================================================================================
     Copyright (c) 2001-2023 Mireo, EU
@@ -62,6 +93,15 @@ inline void print_stats()
 
 //--------------------------------------------------------------------------------------------------------------------------------
 
+/**
+ * @brief Generates a CAN frame with random data and CAN ID.
+ * 
+ * This function creates a CAN frame with a random 64-bit signed integer as data
+ * and a random CAN ID between 1 and 7 (inclusive). The random values are generated
+ * using a uniform distribution.
+ * 
+ * @return can_frame A CAN frame with random data and CAN ID.
+ */
 can_frame generate_frame()
 {
     static std::default_random_engine generator;
@@ -75,6 +115,15 @@ can_frame generate_frame()
     return frame;
 }
 
+/**
+ * @brief Prints the details of CAN frames from a frame packet.
+ *
+ * This function prints the timestamp, CAN ID, and decoded signals of each frame in the provided frame packet.
+ *
+ * @param fp The frame packet containing CAN frames to be printed.
+ * @param transcoder The transcoder used to decode the CAN frame messages.
+ * @param frame_counter The number of frames in the frame packet.
+ */
 void print_frames(const can::frame_packet& fp, can::v2c_transcoder& transcoder, std::int32_t frame_counter)
 {
     using namespace std::chrono;
@@ -155,6 +204,15 @@ BA_ "TxGroupFreq" BO_ 6 "EnergyGroupTxFreq";
 )";
 
 
+/**
+ * @brief Test function for DBC CAN.
+ *
+ * This function demonstrates the parsing of a DBC file and the transcoding of CAN frames.
+ * It prints the parsing time and processes incoming CAN frames in an infinite loop.
+ * The processed frames are printed to stdout.
+ *
+ * @note This function runs indefinitely, simulating the reception of CAN frames.
+ */
 void test_dbc_can()
 {
     LOG_INFO("-- DBC CAN --");
