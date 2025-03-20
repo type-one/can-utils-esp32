@@ -11,33 +11,33 @@
  * @file any.hpp
  * @brief This file contains the implementation of a type-erasing wrapper for various callable objects.
  *
- * This acts as the type-erased wrapper. It can hold any object, regardless of its type, as long as it 
+ * This acts as the type-erased wrapper. It can hold any object, regardless of its type, as long as it
  * satisfies the behavioral interface defined by the wrapper.
- * Inside, it often uses techniques like storing a pointer to an abstract concept object, which delegates 
- * calls to the concrete implementation. 
- * 
+ * Inside, it often uses techniques like storing a pointer to an abstract concept object, which delegates
+ * calls to the concrete implementation.
+ *
  * This file provides the `any`, `any_copyable`, `any_function`, and `any_copyable_function` templates
  * for type-erased storage and invocation of callable objects.
- * 
- * Type erasure is an advanced C++ design pattern that allows you to abstract away the concrete type of 
- * an object while maintaining its behavior. It essentially enables polymorphism without requiring 
+ *
+ * Type erasure is an advanced C++ design pattern that allows you to abstract away the concrete type of
+ * an object while maintaining its behavior. It essentially enables polymorphism without requiring
  * inheritance or virtual functions.
- * 
+ *
  * Principle of Type Erasure
- * 
+ *
  * In type erasure:
  *
- * - Encapsulation of Type-Specific Logic: You define a wrapper (like any.hpp in this case) that hides the 
+ * - Encapsulation of Type-Specific Logic: You define a wrapper (like any.hpp in this case) that hides the
  *   underlying type of the object it holds. This wrapper provides a uniform interface for interacting with the object.
- * - Behavioral Polymorphism: The behavior is preserved using a set of operations defined in the wrapper, like method 
+ * - Behavioral Polymorphism: The behavior is preserved using a set of operations defined in the wrapper, like method
  *   calls, without exposing the actual type.
- * - No Dependency on Base Classes: Unlike traditional polymorphism, type erasure doesn't rely on inheritance or 
- *   virtual function tables (vtables). Instead, it uses a combination of templates and dynamic memory allocation 
+ * - No Dependency on Base Classes: Unlike traditional polymorphism, type erasure doesn't rely on inheritance or
+ *   virtual function tables (vtables). Instead, it uses a combination of templates and dynamic memory allocation
  *   to achieve its goal.
  *
- * Think of it like a "type-neutral box" where you can store objects of different types, but interact with them 
+ * Think of it like a "type-neutral box" where you can store objects of different types, but interact with them
  * uniformly.
- * 
+ *
  * @see https://github.com/facebookexperimental/libunifex/blob/main/doc/type_erasure.md
  */
 
@@ -96,7 +96,6 @@ class any_copyable_function;
 #include "tag_invoke.hpp"
 #include <memory>
 #include <type_traits>
-
 
 namespace mireo
 {
@@ -600,8 +599,24 @@ namespace mireo
 
         struct _copy_construct_cpo
         {
+            /**
+             * @brief Type-erased function signature for a function that takes a void pointer and a constant reference
+             * to `this_`.
+             *
+             * This type alias represents a function signature that can be used for type-erased operations.
+             */
             using type_erased_signature_t = void(void* p, const this_& src) noexcept;
 
+            /**
+             * @brief Functor to construct an object of type T at the given memory location.
+             *
+             * This functor uses placement new to construct an object of type T at the memory location pointed to by
+             * `p`, using the provided source object `src`.
+             *
+             * @tparam T The type of the object to be constructed.
+             * @param p Pointer to the memory location where the object should be constructed.
+             * @param src The source object used to construct the new object.
+             */
             template <typename T>
             void operator()(void* p, const T& src) const noexcept
             {
@@ -612,19 +627,54 @@ namespace mireo
         template <typename Sig>
         struct _invoke_cpo;
 
+        /**
+         * @brief A struct template to handle invocation of callable objects with a specific signature.
+         *
+         * This struct template provides mechanisms to invoke callable objects with a given signature,
+         * either through a custom tag_invoke mechanism or directly.
+         *
+         * @tparam R The return type of the callable object.
+         * @tparam Args The argument types of the callable object.
+         */
         template <typename R, typename... Args>
         struct _invoke_cpo<R(Args...)>
         {
+            /**
+             * @brief Type alias for the type-erased signature.
+             */
             using type_erased_signature_t = R(this_&, Args...);
 
+            /**
+             * @brief Checks if the callable object can be invoked with a custom tag_invoke mechanism.
+             *
+             * @tparam F The type of the callable object.
+             * @return true if the callable object can be invoked with tag_invoke, false otherwise.
+             */
             template <class F>
             static constexpr bool with_tag_invoke_v = mireo::is_tag_invocable_v<_invoke_cpo, F, Args...>;
 
+            /**
+             * @brief Checks if the invocation of the callable object is noexcept.
+             *
+             * @tparam F The type of the callable object.
+             * @return true if the invocation is noexcept, false otherwise.
+             */
             template <class F>
             static constexpr bool nothrow_invoke_v
                 = with_tag_invoke_v<F> ? mireo::is_nothrow_tag_invocable_v<_invoke_cpo, F, Args...>
                                        : std::is_nothrow_invocable_v<F, Args...>;
 
+            /**
+             * @brief Invokes the callable object with the provided arguments.
+             *
+             * This operator invokes the callable object either through the custom tag_invoke mechanism
+             * if available, or directly otherwise.
+             *
+             * @tparam F The type of the callable object.
+             * @param fn The callable object to be invoked.
+             * @param arg The arguments to be passed to the callable object.
+             * @return The result of invoking the callable object.
+             */
             template <typename F>
             R operator()(F&& fn, Args... arg) const noexcept(nothrow_invoke_v<F>)
             {
@@ -648,17 +698,17 @@ namespace mireo
     // from this class to have the type opt-in to customising the specified CPO.
     //
 
-	/**
-	 * @brief Type alias for type-erased tag invocation.
-	 *
-	 * This type alias is used to define a type-erased tag invocation mechanism.
-	 * It utilizes the `detail::_with_type_erased_tag_invoke` template to achieve
-	 * type erasure for the given `Derived` and `CPO` (Customization Point Object)
-	 * types, based on the `type_erased_signature_t` defined within the `CPO`.
-	 *
-	 * @tparam Derived The derived type that will be used in the type-erased tag invocation.
-	 * @tparam CPO The Customization Point Object type that defines the `type_erased_signature_t`.
-	 */
+    /**
+     * @brief Type alias for type-erased tag invocation.
+     *
+     * This type alias is used to define a type-erased tag invocation mechanism.
+     * It utilizes the `detail::_with_type_erased_tag_invoke` template to achieve
+     * type erasure for the given `Derived` and `CPO` (Customization Point Object)
+     * types, based on the `type_erased_signature_t` defined within the `CPO`.
+     *
+     * @tparam Derived The derived type that will be used in the type-erased tag invocation.
+     * @tparam CPO The Customization Point Object type that defines the `type_erased_signature_t`.
+     */
     template <typename Derived, typename CPO>
     using with_type_erased_tag_invoke =
         typename detail::_with_type_erased_tag_invoke<Derived, CPO, typename CPO::type_erased_signature_t>::type;
@@ -667,48 +717,48 @@ namespace mireo
     // _any_object
     //
 
-	/**
-	 * @brief A template struct representing an object that can store any type.
-	 *
-	 * @tparam InlineSize The size of the inline storage.
-	 * @tparam DefaultAllocator The default allocator type.
-	 * @tparam IsCopyable A boolean indicating if the object is copyable.
-	 * @tparam CPOs Customization point objects.
-	 */
+    /**
+     * @brief A template struct representing an object that can store any type.
+     *
+     * @tparam InlineSize The size of the inline storage.
+     * @tparam DefaultAllocator The default allocator type.
+     * @tparam IsCopyable A boolean indicating if the object is copyable.
+     * @tparam CPOs Customization point objects.
+     */
     template <std::size_t InlineSize, typename DefaultAllocator, bool IsCopyable, typename... CPOs>
     struct _any_object
     {
         // Pad size/alignment out to allow storage of at least a pointer.
 
-		/**
-		 * @brief The alignment of the inline storage, which is at least the alignment of a pointer.
-		 */
+        /**
+         * @brief The alignment of the inline storage, which is at least the alignment of a pointer.
+         */
         static constexpr std::size_t inline_alignment = alignof(void*);
 
-		/**
-		 * @brief The size of the inline storage, which is at least the size of a pointer.
-		 */
+        /**
+         * @brief The size of the inline storage, which is at least the size of a pointer.
+         */
         static constexpr std::size_t inline_size = InlineSize < sizeof(void*) ? sizeof(void*) : InlineSize;
 
         // move-constructor is (must be) noexcept
 
-		/**
-		 * @brief Determines if a type can be stored in place.
-		 *
-		 * @tparam T The type to check.
-		 * @return true if the type can be stored in place, false otherwise.
-		 */		
+        /**
+         * @brief Determines if a type can be stored in place.
+         *
+         * @tparam T The type to check.
+         * @return true if the type can be stored in place, false otherwise.
+         */
         template <typename T>
         static constexpr bool can_be_stored_inplace_v = (sizeof(T) <= inline_size && alignof(T) <= inline_alignment);
 
-		/**
-		 * @brief Indicates if the object is copyable.
-		 */
+        /**
+         * @brief Indicates if the object is copyable.
+         */
         static constexpr bool copyable_v = IsCopyable;
 
-		/**
-		 * @brief A nested class representing the type of the object.
-		 */
+        /**
+         * @brief A nested class representing the type of the object.
+         */
         class type;
     };
 
@@ -737,26 +787,26 @@ namespace mireo
          */
         type() = default;
 
-		/**
-		 * @brief Constructs the type with an object.
-		 * 
-		 * @tparam T The type of the object.
-		 * @param object The object to store.
-		 */
+        /**
+         * @brief Constructs the type with an object.
+         *
+         * @tparam T The type of the object.
+         * @param object The object to store.
+         */
         template <typename T>
         requires(!std::is_same_v<type, std::remove_cvref_t<T>>) type(T&& object)
             : type(std::in_place_type<std::remove_cvref_t<T>>, static_cast<T&&>(object))
         {
         }
 
-		/**
-		 * @brief Constructs the type with an allocator and a value.
-		 * 
-		 * @tparam T The type of the value.
-		 * @tparam Allocator The type of the allocator.
-		 * @param allocator The allocator to use.
-		 * @param value The value to store.
-		 */
+        /**
+         * @brief Constructs the type with an allocator and a value.
+         *
+         * @tparam T The type of the value.
+         * @tparam Allocator The type of the allocator.
+         * @param allocator The allocator to use.
+         * @param value The value to store.
+         */
         template <typename T, typename Allocator>
         explicit type(std::allocator_arg_t, Allocator allocator, T&& value) noexcept
             : type(std::allocator_arg, std::move(allocator), std::in_place_type<std::remove_cvref_t<T>>,
@@ -764,13 +814,13 @@ namespace mireo
         {
         }
 
-		/**
-		 * @brief Constructs the type in-place with the given arguments.
-		 * 
-		 * @tparam T The type to construct.
-		 * @tparam Args The types of the arguments.
-		 * @param args The arguments to use for construction.
-		 */
+        /**
+         * @brief Constructs the type in-place with the given arguments.
+         *
+         * @tparam T The type to construct.
+         * @tparam Args The types of the arguments.
+         * @param args The arguments to use for construction.
+         */
         template <typename T, typename... Args>
         requires _any_object::can_be_stored_inplace_v<T>
         explicit type(std::in_place_type_t<T>, Args&&... args)
@@ -779,51 +829,51 @@ namespace mireo
             ::new (static_cast<void*>(&_storage)) T(static_cast<Args&&>(args)...);
         }
 
-		/**
-		 * @brief Constructs the type in-place with the given arguments and allocator.
-		 * 
-		 * @tparam T The type to construct.
-		 * @tparam Allocator The type of the allocator.
-		 * @tparam Args The types of the arguments.
-		 * @param allocator The allocator to use.
-		 * @param args The arguments to use for construction.
-		 */
+        /**
+         * @brief Constructs the type in-place with the given arguments and allocator.
+         *
+         * @tparam T The type to construct.
+         * @tparam Allocator The type of the allocator.
+         * @tparam Args The types of the arguments.
+         * @param allocator The allocator to use.
+         * @param args The arguments to use for construction.
+         */
         template <typename T, typename... Args>
         requires(!_any_object::can_be_stored_inplace_v<T>) explicit type(std::in_place_type_t<T>, Args&&... args)
             : type(std::allocator_arg, DefaultAllocator(), std::in_place_type<T>, static_cast<Args&&>(args)...)
         {
         }
 
-		/**
-		 * @brief Constructs the type in-place with the given arguments and allocator.
-		 * 
-		 * @tparam T The type to construct.
-		 * @tparam Alloc The type of the allocator.
-		 * @tparam Args The types of the arguments.
-		 * @param alloc The allocator to use.
-		 * @param args The arguments to use for construction.
-		 */
+        /**
+         * @brief Constructs the type in-place with the given arguments and allocator.
+         *
+         * @tparam T The type to construct.
+         * @tparam Alloc The type of the allocator.
+         * @tparam Args The types of the arguments.
+         * @param alloc The allocator to use.
+         * @param args The arguments to use for construction.
+         */
         template <typename T, typename Allocator, typename... Args>
         requires _any_object::can_be_stored_inplace_v<T>
         explicit type(std::allocator_arg_t, Allocator, std::in_place_type_t<T>, Args&&... args) noexcept
             : type(std::in_place_type<T>, static_cast<Args&&>(args)...)
         {
         }
-	
-		/**
-		 * @brief Constructs an object of type `type` with heap allocation.
-		 * 
-		 * This constructor is used when the type `T` cannot be stored in place.
-		 * It allocates memory on the heap for the object of type `T` and constructs it
-		 * using the provided allocator and arguments.
-		 * 
-		 * @tparam T The type of the object to be stored.
-		 * @tparam Alloc The type of the allocator to be used.
-		 * @tparam Args The types of the arguments to be forwarded to the constructor of `T`.
-		 * 
-		 * @param alloc The allocator to be used for heap allocation.
-		 * @param args The arguments to be forwarded to the constructor of `T`.
-		 */
+
+        /**
+         * @brief Constructs an object of type `type` with heap allocation.
+         *
+         * This constructor is used when the type `T` cannot be stored in place.
+         * It allocates memory on the heap for the object of type `T` and constructs it
+         * using the provided allocator and arguments.
+         *
+         * @tparam T The type of the object to be stored.
+         * @tparam Alloc The type of the allocator to be used.
+         * @tparam Args The types of the arguments to be forwarded to the constructor of `T`.
+         *
+         * @param alloc The allocator to be used for heap allocation.
+         * @param args The arguments to be forwarded to the constructor of `T`.
+         */
         template <typename T, typename Alloc, typename... Args>
         requires(!_any_object::can_be_stored_inplace_v<T>) explicit type(
             std::allocator_arg_t, Alloc alloc, std::in_place_type_t<T>, Args&&... args)
@@ -833,11 +883,11 @@ namespace mireo
                 std::allocator_arg, std::move(alloc), std::in_place_type<T>, static_cast<Args&&>(args)...);
         }
 
-		/**
-		 * @brief Copy constructor.
-		 * 
-		 * @param other The other type to copy from.
-		 */
+        /**
+         * @brief Copy constructor.
+         *
+         * @param other The other type to copy from.
+         */
         type(const type& other) noexcept requires _any_object::copyable_v : _vtable(other._vtable)
         {
             if (_vtable)
@@ -847,11 +897,11 @@ namespace mireo
             }
         }
 
-		/**
-		 * @brief Move constructor.
-		 * 
-		 * @param other The other type to move from.
-		 */
+        /**
+         * @brief Move constructor.
+         *
+         * @param other The other type to move from.
+         */
         type(type&& other) noexcept
             : _vtable(other._vtable)
         {
@@ -862,9 +912,9 @@ namespace mireo
             }
         }
 
-		/**
-		 * @brief Destructor.
-		 */
+        /**
+         * @brief Destructor.
+         */
         ~type() noexcept
         {
             if (_vtable)
@@ -874,18 +924,18 @@ namespace mireo
             }
         }
 
-		/**
-		 * @brief Copy assignment operator.
-		 * 
-		 * @param other The other type to copy from.
-		 * @return A reference to this type.
-		 */
+        /**
+         * @brief Copy assignment operator.
+         *
+         * @param other The other type to copy from.
+         * @return A reference to this type.
+         */
         type& operator=(const type& other) noexcept requires _any_object::copyable_v
         {
             if (std::addressof(other) == this)
-			{
+            {
                 return *this;
-			}
+            }
 
             if (_vtable)
             {
@@ -901,18 +951,18 @@ namespace mireo
             return *this;
         }
 
-		/**
-		 * @brief Move assignment operator.
-		 * 
-		 * @param other The other type to move from.
-		 * @return A reference to this type.
-		 */
+        /**
+         * @brief Move assignment operator.
+         *
+         * @param other The other type to move from.
+         * @return A reference to this type.
+         */
         type& operator=(type&& other) noexcept
         {
             if (std::addressof(other) == this)
-			{
+            {
                 return *this;
-			}	
+            }
 
             if (_vtable)
             {
@@ -928,13 +978,13 @@ namespace mireo
             return *this;
         }
 
-		/**
-		 * @brief Assignment operator for a value.
-		 * 
-		 * @tparam T The type of the value.
-		 * @param value The value to assign.
-		 * @return A reference to this type.
-		 */
+        /**
+         * @brief Assignment operator for a value.
+         *
+         * @tparam T The type of the value.
+         * @param value The value to assign.
+         * @return A reference to this type.
+         */
         template <typename T>
         requires _any_object::can_be_stored_inplace_v<std::remove_cvref_t<T>> &&(
             !std::is_same_v<type, std::remove_cvref_t<T>>)type&
@@ -951,13 +1001,13 @@ namespace mireo
             return *this;
         }
 
-		/**
-		 * @brief Assignment operator for a value.
-		 * 
-		 * @tparam T The type of the value.
-		 * @param value The value to assign.
-		 * @return A reference to this type.
-		 */
+        /**
+         * @brief Assignment operator for a value.
+         *
+         * @tparam T The type of the value.
+         * @param value The value to assign.
+         * @return A reference to this type.
+         */
         template <typename T>
         requires(!_any_object::can_be_stored_inplace_v<std::remove_cvref_t<T>>)
             && (!std::is_same_v<type, std::remove_cvref_t<T>>)type& operator=(T&& value) noexcept
@@ -975,34 +1025,34 @@ namespace mireo
         }
 
 
-		/**
-		 * @brief Checks if the type contains a value.
-		 * 
-		 * @return true if the type contains a value, false otherwise.
-		 */		
+        /**
+         * @brief Checks if the type contains a value.
+         *
+         * @return true if the type contains a value, false otherwise.
+         */
         explicit operator bool() const noexcept
         {
             return _vtable != nullptr;
         }
 
     private:
-		/**
-		 * @brief Gets the vtable of the type.
-		 * 
-		 * @param self The type to get the vtable from.
-		 * @return The vtable of the type.
-		 */
+        /**
+         * @brief Gets the vtable of the type.
+         *
+         * @param self The type to get the vtable from.
+         * @return The vtable of the type.
+         */
         friend const vtable_t* get_vtable(const type& self) noexcept
         {
             return self._vtable;
         }
 
-		/**
-		 * @brief Gets the address of the stored object.
-		 * 
-		 * @param self The type to get the object address from.
-		 * @return The address of the stored object.
-		 */		
+        /**
+         * @brief Gets the address of the stored object.
+         *
+         * @param self The type to get the object address from.
+         * @return The address of the stored object.
+         */
         friend void* get_object_address(const type& self) noexcept
         {
             return const_cast<void*>(static_cast<const void*>(&self._storage));

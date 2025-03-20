@@ -96,7 +96,8 @@ SG_ MultiplexedSignalName : StartBit|Length@Endianess(Scale,Offset) [Min|Max] "U
 #### Example:
 
 ```text
-SG_ Mode : 0|3@1 (1,0) [0|7] "Mode" ECU1 M SG_ EngineRPM : 8|16@1 (0.125,0) [0|8000] "rpm" ECU1 m0 
+SG_ Mode : 0|3@1 (1,0) [0|7] "Mode" ECU1 M 
+SG_ EngineRPM : 8|16@1 (0.125,0) [0|8000] "rpm" ECU1 m0 
 SG_ GearPosition : 8|8@1 (1,0) [0|255] "gear" ECU2 m1
 ```
 
