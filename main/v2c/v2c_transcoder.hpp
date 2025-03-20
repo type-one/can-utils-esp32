@@ -460,6 +460,8 @@ namespace can
         auto signals(std::uint64_t fd) const
         {
             std::uint64_t frame_mux = _mux.has_value() ? _mux->decode(fd) : -1;
+			// Pipe operator: A beginner's guide to C++ Ranges and Views.
+			// https://hannes.hauswedell.net/post/2019/11/30/range_intro/
             return _signals
                 | std::ranges::views::filter([frame_mux](const auto& sig) { return sig.is_active(frame_mux); });
         }
