@@ -741,9 +741,21 @@ namespace mireo
             using allocator_type = typename std::allocator_traits<Allocator>::template rebind_alloc<state>;
             using allocator_traits = std::allocator_traits<allocator_type>;
 
-            // This is the state that is actually heap-allocated.
+            /**
+             * @brief  This is the state that is actually heap-allocated.
+             */
             struct state
             {
+                /**
+                 * @brief Constructs a state object with the given allocator and arguments.
+                 *
+                 * This constructor uses perfect forwarding to initialize the `object` member
+                 * with the provided arguments and moves the provided allocator to the `allocator` member.
+                 *
+                 * @tparam Args Variadic template parameter pack for the types of the arguments.
+                 * @param allocator The allocator to be used for memory management.
+                 * @param args The arguments to be perfectly forwarded to the constructor of `T`.
+                 */
                 template <typename... Args>
                 requires std::constructible_from<T, Args...>
                 explicit state(std::allocator_arg_t, allocator_type allocator, std::in_place_type_t<T>, Args&&... args)
@@ -756,10 +768,22 @@ namespace mireo
                 [[no_unique_address]] allocator_type allocator;
             };
 
-            // This is the base-class object that holds the pointer to the
-            // heap-allocated state.
+            /**
+             * @brief This is the base-class object that holds the pointer to the heap-allocated state.
+             */
             struct base
             {
+                /**
+                 * @brief Constructs a base object with the given allocator and arguments.
+                 *
+                 * This constructor template is enabled if the type T is constructible from the provided arguments.
+                 * It allocates memory for the state using the provided allocator and constructs the state in-place
+                 * with the given arguments.
+                 *
+                 * @tparam Args Variadic template parameter pack for the constructor arguments.
+                 * @param allocator The allocator to use for memory allocation and construction.
+                 * @param args The arguments to forward to the constructor of T.
+                 */
                 template <typename... Args>
                 requires std::constructible_from<T, Args...> base(
                     std::allocator_arg_t, allocator_type allocator, std::in_place_type_t<T>, Args&&... args)
@@ -769,6 +793,17 @@ namespace mireo
                         static_cast<Args&&>(args)...);
                 }
 
+                /**
+                 * @brief Constructs a base object with a custom allocator and in-place construction of the contained
+                 * object.
+                 *
+                 * This constructor is enabled if the provided Allocator type is not the same as the allocator_type and
+                 * if the contained object of type T can be constructed from the provided arguments.
+                 *
+                 * @tparam Args Variadic template parameter pack for the arguments to construct the contained object.
+                 * @param allocator The custom allocator to be used for memory allocation.
+                 * @param args Arguments to be forwarded to the constructor of the contained object of type T.
+                 */
                 template <typename... Args>
                 requires(!std::same_as<Allocator, allocator_type> && std::constructible_from<T, Args...>) explicit base(
                     std::allocator_arg_t, Allocator allocator, std::in_place_type_t<T>, Args&&... args)
@@ -777,17 +812,43 @@ namespace mireo
                 {
                 }
 
+                /**
+                 * @brief Copy constructor for the base class.
+                 *
+                 * This constructor creates a new instance of the base class by copying the state
+                 * from another instance. It requires that the type T is copy constructible.
+                 *
+                 * @tparam T The type of the object being managed by the base class.
+                 * @param other The instance of the base class to copy from.
+                 */
                 base(const base& other) requires std::copy_constructible<T>
                     : base(std::allocator_arg, const_cast<const allocator_type&>(other._state->allocator),
                           std::in_place_type<T>, const_cast<const T&>(other._state->object))
                 {
                 }
 
+                /**
+                 * @brief Move constructor for the base class.
+                 *
+                 * This constructor initializes the base object by transferring ownership of the
+                 * internal state from another base object. The state of the other object is set to nullptr.
+                 *
+                 * @param other The base object to move from. After the move, the state of the other
+                 *              object will be nullptr.
+                 */
                 base(base&& other) noexcept
                     : _state(std::exchange(other._state, nullptr))
                 {
                 }
 
+                /**
+                 * @brief Destructor for the base class.
+                 *
+                 * This destructor ensures that if the _state pointer is not null, it will:
+                 * 1. Move the allocator from the _state.
+                 * 2. Call the destructor for the state object.
+                 * 3. Deallocate the memory used by the state object using the allocator.
+                 */
                 ~base()
                 {
                     if (_state != nullptr)
@@ -799,11 +860,33 @@ namespace mireo
                 }
 
             private:
+                /**
+                 * @brief A friend function to retrieve the wrapped object from the base class.
+                 *
+                 * This function is a friend of the base class and allows access to the wrapped object
+                 * stored in the base class's state. It uses the tag_invoke mechanism to provide a
+                 * standardized way of accessing the wrapped object.
+                 *
+                 * @tparam T The type of the wrapped object.
+                 * @param self A reference to the base class instance.
+                 * @return A reference to the wrapped object.
+                 */
                 friend T& tag_invoke(tag_t<get_wrapped_object>, base& self) noexcept
                 {
                     return self._state->object;
                 }
 
+                /**
+                 * @brief Retrieves the wrapped object from the given base instance.
+                 *
+                 * This function is a friend function that allows access to the wrapped object
+                 * stored within the base instance. It is invoked using the tag_invoke mechanism
+                 * with the get_wrapped_object tag.
+                 *
+                 * @tparam T The type of the wrapped object.
+                 * @param self A constant reference to the base instance from which to retrieve the wrapped object.
+                 * @return A constant reference to the wrapped object.
+                 */
                 friend const T& tag_invoke(tag_t<get_wrapped_object>, const base& self) noexcept
                 {
                     return self._state->object;
