@@ -114,6 +114,7 @@ namespace can
      */
     class tr_signal
     {
+    private:
         std::string _name; ///< Name of the signal.
         sig_codec _codec;  ///< Codec used for encoding/decoding the signal.
 
@@ -460,8 +461,8 @@ namespace can
         auto signals(std::uint64_t fd) const
         {
             std::uint64_t frame_mux = _mux.has_value() ? _mux->decode(fd) : -1;
-			// Pipe operator: A beginner's guide to C++ Ranges and Views.
-			// https://hannes.hauswedell.net/post/2019/11/30/range_intro/
+            // Pipe operator: A beginner's guide to C++ Ranges and Views.
+            // https://hannes.hauswedell.net/post/2019/11/30/range_intro/
             return _signals
                 | std::ranges::views::filter([frame_mux](const auto& sig) { return sig.is_active(frame_mux); });
         }
@@ -665,24 +666,24 @@ namespace can
 
     // tag-invokes used by dbc_parser.cpp
 
-	/**
-	 * @brief Invokes the tag_invoke function to add a signal to the v2c_transcoder.
-	 * 
-	 * @param def_sg_cpo Customization point object for tag_invoke.
-	 * @param this_ Reference to the v2c_transcoder instance.
-	 * @param message_id The ID of the message to which the signal belongs.
-	 * @param sg_mux_switch_val Optional multiplexer switch value.
-	 * @param sg_name The name of the signal.
-	 * @param sg_start_bit The starting bit position of the signal.
-	 * @param sg_size The size of the signal in bits.
-	 * @param sg_byte_order The byte order of the signal ('0' for little-endian, '1' for big-endian).
-	 * @param sg_sign The sign of the signal ('0' for unsigned, '1' for signed).
-	 * @param sg_factor The factor to be applied to the signal value.
-	 * @param sg_offset The offset to be applied to the signal value.
-	 * @param sg_min The minimum value of the signal.
-	 * @param sg_unit The unit of the signal.
-	 * @param rec_ords A vector of record orders.
-	 */
+    /**
+     * @brief Invokes the tag_invoke function to add a signal to the v2c_transcoder.
+     *
+     * @param def_sg_cpo Customization point object for tag_invoke.
+     * @param this_ Reference to the v2c_transcoder instance.
+     * @param message_id The ID of the message to which the signal belongs.
+     * @param sg_mux_switch_val Optional multiplexer switch value.
+     * @param sg_name The name of the signal.
+     * @param sg_start_bit The starting bit position of the signal.
+     * @param sg_size The size of the signal in bits.
+     * @param sg_byte_order The byte order of the signal ('0' for little-endian, '1' for big-endian).
+     * @param sg_sign The sign of the signal ('0' for unsigned, '1' for signed).
+     * @param sg_factor The factor to be applied to the signal value.
+     * @param sg_offset The offset to be applied to the signal value.
+     * @param sg_min The minimum value of the signal.
+     * @param sg_unit The unit of the signal.
+     * @param rec_ords A vector of record orders.
+     */
     inline void tag_invoke(def_sg_cpo, v2c_transcoder& this_, std::uint32_t message_id,
         std::optional<unsigned> sg_mux_switch_val, std::string sg_name, unsigned sg_start_bit, unsigned sg_size,
         char sg_byte_order, char sg_sign, double sg_factor, double sg_offset, double sg_min, double /*sg_max*/,
@@ -699,22 +700,22 @@ namespace can
         this_.add_signal(message_id, std::move(sig));
     }
 
-	/**
-	 * @brief Tag invoke function for v2c_transcoder.
-	 *
-	 * This function is used to handle the tag_invoke operation for the v2c_transcoder class.
-	 *
-	 * @param def_sg_mux_cpo A tag type used to identify the operation.
-	 * @param this_ Reference to the v2c_transcoder instance.
-	 * @param message_id The message ID associated with the signal.
-	 * @param sg_name The name of the signal (unused).
-	 * @param sg_start_bit The starting bit position of the signal.
-	 * @param sg_size The size of the signal in bits.
-	 * @param sg_byte_order The byte order of the signal ('L' for little-endian, 'B' for big-endian).
-	 * @param sg_sign The sign of the signal ('S' for signed, 'U' for unsigned).
-	 * @param sg_unit The unit of the signal (unused).
-	 * @param rec_ords A vector of record orders (unused).
-	 */
+    /**
+     * @brief Tag invoke function for v2c_transcoder.
+     *
+     * This function is used to handle the tag_invoke operation for the v2c_transcoder class.
+     *
+     * @param def_sg_mux_cpo A tag type used to identify the operation.
+     * @param this_ Reference to the v2c_transcoder instance.
+     * @param message_id The message ID associated with the signal.
+     * @param sg_name The name of the signal (unused).
+     * @param sg_start_bit The starting bit position of the signal.
+     * @param sg_size The size of the signal in bits.
+     * @param sg_byte_order The byte order of the signal ('L' for little-endian, 'B' for big-endian).
+     * @param sg_sign The sign of the signal ('S' for signed, 'U' for unsigned).
+     * @param sg_unit The unit of the signal (unused).
+     * @param rec_ords A vector of record orders (unused).
+     */
     inline void tag_invoke(def_sg_mux_cpo, v2c_transcoder& this_, std::uint32_t message_id, std::string sg_name,
         unsigned sg_start_bit, unsigned sg_size, char sg_byte_order, char sg_sign, std::string sg_unit,
         std::vector<size_t> rec_ords)
@@ -727,18 +728,18 @@ namespace can
         this_.add_muxer(message_id, std::move(mux));
     }
 
-	/**
-	 * @brief Custom tag_invoke function for v2c_transcoder.
-	 *
-	 * This function is used to add a message to the v2c_transcoder instance.
-	 *
-	 * @param def_bo_cpo A customization point object (CPO) for tag_invoke.
-	 * @param this_ Reference to the v2c_transcoder instance.
-	 * @param message_id The ID of the message to be added.
-	 * @param msg_name The name of the message to be added.
-	 * @param msg_size The size of the message (unused).
-	 * @param transmitter_ord The order of the transmitter (unused).
-	 */
+    /**
+     * @brief Custom tag_invoke function for v2c_transcoder.
+     *
+     * This function is used to add a message to the v2c_transcoder instance.
+     *
+     * @param def_bo_cpo A customization point object (CPO) for tag_invoke.
+     * @param this_ Reference to the v2c_transcoder instance.
+     * @param message_id The ID of the message to be added.
+     * @param msg_name The name of the message to be added.
+     * @param msg_size The size of the message (unused).
+     * @param transmitter_ord The order of the transmitter (unused).
+     */
     inline void tag_invoke(def_bo_cpo, v2c_transcoder& this_, std::uint32_t message_id, std::string msg_name,
         std::size_t msg_size, std::size_t transmitter_ord)
     {
@@ -747,24 +748,24 @@ namespace can
         this_.add_message(message_id, std::move(msg_name));
     }
 
-	/**
-	 * @brief Invokes the tag_invoke function to set an environment variable.
-	 *
-	 * This function is an inline implementation of the tag_invoke function, which sets an environment variable
-	 * using the provided parameters. The function ignores most of the parameters except for the name and initial value.
-	 *
-	 * @param def_ev_cpo A placeholder parameter for the customization point object.
-	 * @param this_ A reference to the v2c_transcoder object.
-	 * @param name The name of the environment variable to set.
-	 * @param type The type of the environment variable (ignored).
-	 * @param ev_min The minimum value of the environment variable (ignored).
-	 * @param ev_max The maximum value of the environment variable (ignored).
-	 * @param unit The unit of the environment variable (ignored).
-	 * @param initial The initial value of the environment variable.
-	 * @param ev_id The ID of the environment variable (ignored).
-	 * @param access_type The access type of the environment variable (ignored).
-	 * @param access_nodes_ords The access nodes ordinals of the environment variable (ignored).
-	 */
+    /**
+     * @brief Invokes the tag_invoke function to set an environment variable.
+     *
+     * This function is an inline implementation of the tag_invoke function, which sets an environment variable
+     * using the provided parameters. The function ignores most of the parameters except for the name and initial value.
+     *
+     * @param def_ev_cpo A placeholder parameter for the customization point object.
+     * @param this_ A reference to the v2c_transcoder object.
+     * @param name The name of the environment variable to set.
+     * @param type The type of the environment variable (ignored).
+     * @param ev_min The minimum value of the environment variable (ignored).
+     * @param ev_max The maximum value of the environment variable (ignored).
+     * @param unit The unit of the environment variable (ignored).
+     * @param initial The initial value of the environment variable.
+     * @param ev_id The ID of the environment variable (ignored).
+     * @param access_type The access type of the environment variable (ignored).
+     * @param access_nodes_ords The access nodes ordinals of the environment variable (ignored).
+     */
     inline void tag_invoke(def_ev_cpo, v2c_transcoder& this_, std::string name, unsigned type, double ev_min,
         double ev_max, std::string unit, double initial, unsigned ev_id, std::string access_type,
         std::vector<std::size_t> access_nodes_ords)
@@ -780,22 +781,22 @@ namespace can
         this_.set_env_var(name, initial);
     }
 
-	/**
-	 * @brief Handles the invocation of a tag with specific attributes and values.
-	 *
-	 * This function is called when a tag is invoked with the specified attributes and values.
-	 * It processes the tag based on the attribute name and value, and performs specific actions
-	 * such as setting the signal aggregation type or assigning a transmission group.
-	 *
-	 * @param def_ba_cpo A placeholder parameter for the tag invocation.
-	 * @param this_ Reference to the v2c_transcoder object.
-	 * @param attr_name The name of the attribute being processed.
-	 * @param object_type The type of the object associated with the tag.
-	 * @param object_name The name of the object associated with the tag.
-	 * @param bu_id A placeholder parameter for the buffer ID (unused).
-	 * @param message_id The ID of the message associated with the tag.
-	 * @param attr_val The value of the attribute, which can be an integer, double, or string.
-	 */
+    /**
+     * @brief Handles the invocation of a tag with specific attributes and values.
+     *
+     * This function is called when a tag is invoked with the specified attributes and values.
+     * It processes the tag based on the attribute name and value, and performs specific actions
+     * such as setting the signal aggregation type or assigning a transmission group.
+     *
+     * @param def_ba_cpo A placeholder parameter for the tag invocation.
+     * @param this_ Reference to the v2c_transcoder object.
+     * @param attr_name The name of the attribute being processed.
+     * @param object_type The type of the object associated with the tag.
+     * @param object_name The name of the object associated with the tag.
+     * @param bu_id A placeholder parameter for the buffer ID (unused).
+     * @param message_id The ID of the message associated with the tag.
+     * @param attr_val The value of the attribute, which can be an integer, double, or string.
+     */
     inline void tag_invoke(def_ba_cpo, v2c_transcoder& this_, std::string attr_name, std::string object_type,
         std::string object_name, std::size_t bu_id, unsigned message_id,
         std::variant<std::int32_t, double, std::string> attr_val)
@@ -813,18 +814,18 @@ namespace can
         }
     }
 
-	/**
-	 * @brief Invokes the tag_invoke function to set the signal value type.
-	 * 
-	 * This function is an inline implementation of the tag_invoke function, which
-	 * sets the signal value type for a given message ID and signal name.
-	 * 
-	 * @param def_sig_valtype_cpo A customization point object (CPO) for defining the signal value type.
-	 * @param this_ A reference to the v2c_transcoder object.
-	 * @param message_id The ID of the message.
-	 * @param sig_name The name of the signal.
-	 * @param sig_ext_val_type The external value type of the signal.
-	 */
+    /**
+     * @brief Invokes the tag_invoke function to set the signal value type.
+     *
+     * This function is an inline implementation of the tag_invoke function, which
+     * sets the signal value type for a given message ID and signal name.
+     *
+     * @param def_sig_valtype_cpo A customization point object (CPO) for defining the signal value type.
+     * @param this_ A reference to the v2c_transcoder object.
+     * @param message_id The ID of the message.
+     * @param sig_name The name of the signal.
+     * @param sig_ext_val_type The external value type of the signal.
+     */
     inline void tag_invoke(def_sig_valtype_cpo, v2c_transcoder& this_, unsigned message_id, std::string sig_name,
         unsigned sig_ext_val_type)
     {

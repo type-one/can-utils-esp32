@@ -10,22 +10,22 @@
 /**
  * @file can_codec.hpp
  * @brief Header file for CAN signal encoding and decoding, and physical value conversion.
- * 
+ *
  * This file contains the definitions of classes and functions for encoding and decoding
  * CAN bus signals, handling calculations on CAN signal values, and converting raw signal
  * values to physical values. It is designed for use with the ESP32 micro-controller and
  * is a fork and modification of the MIREO version.
  *
  * @copyright Copyright (c) 2001-2023 Mireo, EU
- * 
+ *
  * @details
- * 
+ *
  * The main classes provided in this file are:
  * - can::sig_codec: A class to encode and decode CAN bus signals.
  * - can::sig_calc_type: A template class to handle calculations on CAN signal values.
  * - can::phys_value: A class to convert raw signal values to physical values.
- * 
- * The file also defines an enumeration for value types (can::val_type_t). 
+ *
+ * The file also defines an enumeration for value types (can::val_type_t).
  */
 
 //-----------------------------------------------------------------------------//
@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <type_traits>
@@ -56,7 +57,7 @@ namespace can
      */
     class sig_codec
     {
-		private:
+    private:
         using order = boost::endian::order;
         unsigned _start_bit, _bit_size;
         order _byte_order;
@@ -112,7 +113,7 @@ namespace can
          * @param raw The raw signal value.
          */
         sig_calc_type(std::uint64_t raw)
-		{
+        {
             _value = *(const T*)&raw;
         }
 
@@ -121,7 +122,7 @@ namespace can
          * @return Raw signal value.
          */
         std::uint64_t get_raw() const
-		{
+        {
             return *(const std::uint64_t*)&_value;
         }
 
@@ -131,8 +132,88 @@ namespace can
          * @return The result of the addition.
          */
         sig_calc_type<T> operator+(const sig_calc_type<T>& rhs) const
-		{
+        {
             return from_value(_value + rhs._value);
+        }
+
+        /**
+         * @brief Substract two sig_calc_type values.
+         * @param rhs The right-hand side value to substract.
+         * @return The result of the substraction.
+         */
+        sig_calc_type<T> operator-(const sig_calc_type<T>& rhs) const
+        {
+            return from_value(_value - rhs._value);
+        }
+
+        /**
+         * @brief Multiply two sig_calc_type values.
+         * @param rhs The right-hand side value to multiply.
+         * @return The result of the multiplication.
+         */
+        sig_calc_type<T> operator*(const sig_calc_type<T>& rhs) const
+        {
+            return from_value(_value * rhs._value);
+        }
+
+        /**
+         * @brief Compare (less) two sig_calc_type values.
+         * @param rhs The right-hand side value to compare.
+         * @return The result of comparison.
+         */
+        bool operator<(const sig_calc_type<T>& rhs) const
+        {
+            return _value < rhs._value;
+        }
+
+        /**
+         * @brief Compare (less or equal) two sig_calc_type values.
+         * @param rhs The right-hand side value to compare.
+         * @return The result of comparison.
+         */
+        bool operator<=(const sig_calc_type<T>& rhs) const
+        {
+            return _value <= rhs._value;
+        }
+
+        /**
+         * @brief Compare (greater) two sig_calc_type values.
+         * @param rhs The right-hand side value to compare.
+         * @return The result of comparison.
+         */
+        bool operator>(const sig_calc_type<T>& rhs) const
+        {
+            return _value > rhs._value;
+        }
+
+        /**
+         * @brief Compare (greater or equal) two sig_calc_type values.
+         * @param rhs The right-hand side value to compare.
+         * @return The result of comparison.
+         */
+        bool operator>=(const sig_calc_type<T>& rhs) const
+        {
+            return _value >= rhs._value;
+        }
+
+        /**
+         * @brief Compare (equal) two sig_calc_type values.
+         * @param rhs The right-hand side value to compare.
+         * @return The result of comparison.
+         */
+        bool operator==(const sig_calc_type<T>& rhs) const
+        {
+            return _value == rhs._value;
+        }
+
+        /**
+         * @brief Compare (diff) two sig_calc_type values.
+         * @param rhs The right-hand side value to compare.
+         * @return The result of comparison.
+         */
+        bool operator!=(const sig_calc_type<T>& rhs) const
+        {
+            return _value != rhs._value;
         }
 
         /**
@@ -141,15 +222,25 @@ namespace can
          * @return The result of the division.
          */
         sig_calc_type<T> idivround(std::int64_t d) const
-		{
+        {
             if constexpr (std::is_same_v<T, std::uint64_t> || std::is_same_v<T, std::int64_t>)
-			{
+            {
                 return from_value(T((_value < 0) ? (_value - d / 2) / d : (_value + d / 2) / d));
-			}
+            }
             else
-			{
+            {
                 return from_value(_value / d);
-			}
+            }
+        }
+
+        /**
+         * @brief Square root of the sig_calc_type value (positive value).
+         * @return The result of the square root.
+         */
+        sig_calc_type<T> sqrt() const
+        {
+			constexpr const auto zero = static_cast<T>(0);
+            return from_value((_value > zero) ? static_cast<T>(std::sqrt(_value)) : zero);
         }
 
     private:

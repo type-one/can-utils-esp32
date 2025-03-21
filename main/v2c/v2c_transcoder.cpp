@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <numeric>
 #include <unordered_map>
 
@@ -84,6 +85,57 @@ namespace can
         }
     };
 
+    /// @brief Template class for keeping the first signal value in the aggregate.
+    template <typename T>
+    class sig_first
+    {
+        const tr_signal _sig;        ///< The signal to be processed.
+        sig_calc_type<T> _val { 0 }; ///< The first value of the signal.
+        bool _is_first { true };     ///< Flag to check if it's the first value.
+
+    public:
+        /**
+         * @brief Constructor for sig_first.
+         * @param sig The signal to be processed.
+         */
+        sig_first(const tr_signal sig)
+            : _sig(sig)
+        {
+        }
+
+        /**
+         * @brief Assembles the signal value.
+         * @param self Reference to the sig_first object.
+         * @param mux_val Multiplexer value.
+         * @param fd Frame data.
+         * @return Encoded signal value.
+         */
+        friend std::uint64_t tag_invoke(assemble_cpo, sig_first& self, std::uint64_t mux_val, std::uint64_t fd)
+        {
+            if (!self._sig.is_active(mux_val))
+            {
+                return 0;
+            }
+
+            if (self._is_first)
+            {
+                sig_calc_type<T> val(self._sig.decode(fd));
+                self._val = val;
+                self._is_first = false;
+            }
+            return self._sig.encode(self._val.get_raw());
+        }
+
+        /**
+         * @brief Resets the signal value.
+         * @param self Reference to the sig_first object.
+         */
+        friend void tag_invoke(reset_cpo, sig_first& self)
+        {
+            self._is_first = true;
+        }
+    };
+
     /// @brief Template class for computing the average of signal values in the aggregate.
     template <typename T>
     class sig_avg
@@ -131,6 +183,235 @@ namespace can
         {
             self._val = 0;
             self._num_samples = 0;
+        }
+    };
+
+    /// @brief Template class for computing the standard deviation of signal values in the aggregate.
+    template <typename T>
+    class sig_std_deviation
+    {
+        const tr_signal _sig;             ///< The signal to be processed.
+        sig_calc_type<T> _sum { 0 };      ///< The accumulated sum of the signal values.
+        sig_calc_type<T> _sum_sq { 0 };   ///< The accumulated sum of the squares of the signal values.
+        std::uint64_t _num_samples { 0 }; ///< The number of samples.
+
+    public:
+        /**
+         * @brief Constructor for sig_std_deviation.
+         * @param sig The signal to be processed.
+         */
+        sig_std_deviation(const tr_signal sig)
+            : _sig(sig)
+        {
+        }
+
+        /**
+         * @brief Assembles the signal value.
+         * @param self Reference to the sig_std_deviation object.
+         * @param mux_val Multiplexer value.
+         * @param fd Frame data.
+         * @return Encoded standard deviation signal value.
+         */
+        friend std::uint64_t tag_invoke(assemble_cpo, sig_std_deviation& self, std::uint64_t mux_val, std::uint64_t fd)
+        {
+            if (!self._sig.is_active(mux_val))
+            {
+                return 0;
+            }
+
+            sig_calc_type<T> val(self._sig.decode(fd));
+            self._sum = (self._num_samples == 0) ? val : self._sum + val;
+            self._sum_sq = (self._num_samples == 0) ? val * val : self._sum_sq + val * val;
+            ++self._num_samples;
+
+            if (self._num_samples < 2)
+            {
+                return 0;
+            }
+
+            sig_calc_type<T> mean = self._sum.idivround(self._num_samples);
+            sig_calc_type<T> variance = (self._sum_sq - mean * self._sum).idivround(self._num_samples - 1);
+            sig_calc_type<T> stddev = variance.sqrt();
+
+            return self._sig.encode(stddev.get_raw());
+        }
+
+        /**
+         * @brief Resets the signal values and sample count.
+         * @param self Reference to the sig_std_deviation object.
+         */
+        friend void tag_invoke(reset_cpo, sig_std_deviation& self)
+        {
+            self._sum = 0;
+            self._sum_sq = 0;
+            self._num_samples = 0;
+        }
+    };
+
+    /// @brief Template class for computing the median of signal values in the aggregate.
+    template <typename T>
+    class sig_median
+    {
+        const tr_signal _sig;                  ///< The signal to be processed.
+        std::vector<sig_calc_type<T>> _values; ///< The collected values of the signal.
+
+    public:
+        /**
+         * @brief Constructor for sig_median.
+         * @param sig The signal to be processed.
+         */
+        sig_median(const tr_signal sig)
+            : _sig(sig)
+        {
+        }
+
+        /**
+         * @brief Assembles the signal value.
+         * @param self Reference to the sig_median object.
+         * @param mux_val Multiplexer value.
+         * @param fd Frame data.
+         * @return Encoded median signal value.
+         */
+        friend std::uint64_t tag_invoke(assemble_cpo, sig_median& self, std::uint64_t mux_val, std::uint64_t fd)
+        {
+            if (!self._sig.is_active(mux_val))
+            {
+                return 0;
+            }
+
+            sig_calc_type<T> val(self._sig.decode(fd));
+            self._values.push_back(val);
+
+            if (self._values.size() == 1)
+            {
+                return self._sig.encode(val.get_raw());
+            }
+
+            std::vector<sig_calc_type<T>> sorted_values = self._values;
+            std::sort(sorted_values.begin(), sorted_values.end());
+
+            std::size_t mid = sorted_values.size() / 2;
+            sig_calc_type<T> median_val = (sorted_values.size() % 2 == 0)
+                ? (sorted_values[mid - 1] + sorted_values[mid]).idivround(2)
+                : sorted_values[mid];
+
+            return self._sig.encode(median_val.get_raw());
+        }
+
+        /**
+         * @brief Resets the collected values.
+         * @param self Reference to the sig_median object.
+         */
+        friend void tag_invoke(reset_cpo, sig_median& self)
+        {
+            self._values.clear();
+        }
+    };
+
+    /// @brief Template class for computing the maximum of signal values in the aggregate.
+    template <typename T>
+    class sig_max
+    {
+        const tr_signal _sig;        ///< The signal to be processed.
+        sig_calc_type<T> _val { 0 }; ///< The maximum value of the signal.
+
+    public:
+        /**
+         * @brief Constructor for sig_max.
+         * @param sig The signal to be processed.
+         */
+        sig_max(const tr_signal sig)
+            : _sig(sig)
+        {
+        }
+
+        /**
+         * @brief Assembles the signal value.
+         * @param self Reference to the sig_max object.
+         * @param mux_val Multiplexer value.
+         * @param fd Frame data.
+         * @return Encoded maximum signal value.
+         */
+        friend std::uint64_t tag_invoke(assemble_cpo, sig_max& self, std::uint64_t mux_val, std::uint64_t fd)
+        {
+            if (!self._sig.is_active(mux_val))
+            {
+                return 0;
+            }
+
+            sig_calc_type<T> val(self._sig.decode(fd));
+            if (val > self._val)
+            {
+                self._val = val;
+            }
+
+            return self._sig.encode(self._val.get_raw());
+        }
+
+        /**
+         * @brief Resets the signal value.
+         * @param self Reference to the sig_max object.
+         */
+        friend void tag_invoke(reset_cpo, sig_max& self)
+        {
+            self._val = 0;
+        }
+    };
+
+    /// @brief Template class for computing the minimum of signal values in the aggregate.
+    template <typename T>
+    class sig_min
+    {
+        const tr_signal _sig;        ///< The signal to be processed.
+        sig_calc_type<T> _val { 0 }; ///< The minimum value of the signal.
+
+    public:
+        /**
+         * @brief Constructor for sig_min.
+         * @param sig The signal to be processed.
+         */
+        sig_min(const tr_signal sig)
+            : _sig(sig)
+        {
+            std::uint64_t raw = 0U;
+            const auto val = std::numeric_limits<T>::max();
+			*((T*)&raw) = val;
+			_val = sig_calc_type<T>(raw);
+        }
+
+        /**
+         * @brief Assembles the signal value.
+         * @param self Reference to the sig_min object.
+         * @param mux_val Multiplexer value.
+         * @param fd Frame data.
+         * @return Encoded minimum signal value.
+         */
+        friend std::uint64_t tag_invoke(assemble_cpo, sig_min& self, std::uint64_t mux_val, std::uint64_t fd)
+        {
+            if (!self._sig.is_active(mux_val))
+            {
+                return 0;
+            }
+
+            sig_calc_type<T> val(self._sig.decode(fd));
+            if (val < self._val)
+            {
+                self._val = val;
+            }
+
+            return self._sig.encode(self._val.get_raw());
+        }
+
+        /**
+         * @brief Resets the signal value.
+         * @param self Reference to the sig_min object.
+         */
+        friend void tag_invoke(reset_cpo, sig_min& self)
+        {
+			std::uint64_t raw = 0U;
+            const auto val = std::numeric_limits<T>::max();
+			*((T*)&raw) = val;
+			self._val = sig_calc_type<T>(raw);
         }
     };
 
@@ -329,9 +610,29 @@ namespace can
             {
                 sasm = make_sig_agg<sig_last>(sig);
             }
+            if (atype == "FIRST")
+            {
+                sasm = make_sig_agg<sig_first>(sig);
+            }
             else if (atype == "AVG")
             {
                 sasm = make_sig_agg<sig_avg>(sig);
+            }
+            else if (atype == "MEDIAN")
+            {
+                sasm = make_sig_agg<sig_median>(sig);
+            }
+            else if (atype == "STDDEV")
+            {
+                 sasm = make_sig_agg<sig_std_deviation>(sig);
+            }
+            else if (atype == "MAX")
+            {
+                sasm = make_sig_agg<sig_max>(sig);
+            }
+            else if (atype == "MIN")
+            {
+                sasm = make_sig_agg<sig_min>(sig);
             }
             else
             {

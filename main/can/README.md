@@ -112,3 +112,71 @@ Explanation:
 
 - **Efficient Bandwidth Usage**: Only the signals relevant to the current multiplexer value are sent, reducing message overhead.
 - **Organized Encoding**: Signals are grouped logically within a single message, making the system easier to manage.
+
+---
+
+# Advanced DBC File Format Concepts
+
+The in-vehicle network communication leverages the CAN network to transmit information from the ECUs in automotive systems. The data representation of this information is captured via the **DBC (Database Container)** format.
+
+This article covers concepts such as **keywords**, **attributes**, and **multiplexors**, along with a quick overview of popular editors and parsers. Let’s take a deep dive into DBC files!
+
+---
+
+## Keywords in DBC Files
+
+Various keywords in a DBC file define and describe messages and signals. They provide valuable information for interpreting and decoding the data.
+
+- **Version**: Indicates the version of the DBC file format being used to ensure compatibility.
+    ```plaintext
+    VERSION "RELEASE_1_2"
+    ```
+
+- **NS_**: Defines the namespace for messages and signals, organizing and categorizing them.
+
+- **BO_**: Defines a message, including its identifier, attributes, and associated signals.
+
+- **SG_**: Defines a signal, specifying its name, start position, size, data type, and attributes.
+
+- **CM_**: Adds comments and annotations for additional context.
+
+- **BA_ and BA_DEF_**: Define custom attributes for messages and signals.
+    ```plaintext
+    BA_ "ECUErrorState" BO_ 2000 1;
+    BA_DEF_ BO_ "ECUErrorState" ENUM "No", "Yes";
+    BA_DEF_DEF_ "ECUErrorState" "No";
+    ```
+
+---
+
+## Message Attributes in DBC Files
+
+DBC files include attributes to configure the timing and behavior of messages. Common attributes include:
+
+- **GenMsgSendType**: Specifies transmission type (e.g., cyclic, triggered).
+- **GenMsgCycleTime**: Defines the interval between consecutive message transmissions (in milliseconds).
+- **GenMsgStartDelayTime**: Adds a delay before periodic message transmission begins.
+- **GenMsgDelayTime**: Ensures a minimum delay between triggered message transmissions.
+
+---
+
+## Signal Attributes in DBC Files
+
+Attributes can also be defined for individual signals:
+
+- **GenSigStartValue**: Specifies a signal's initial value when the message is transmitted. It ensures the receiver uses a default value until the signal is received.
+
+---
+
+## Multiplexed Messages in DBC Files
+
+Multiplexed messages use the same CAN ID to carry different sets of signals. A **multiplexer signal** selects which signals are transmitted. This optimizes bandwidth usage and reduces message count.
+
+### Example:
+In the following DBC structure:
+```plaintext
+SG_ SensorSelect : 0|8@1 (1,0) [0|1] "Selector" ECU1 M
+SG_ Sensor1Value : 24|16@1 (0.1,0) [0|100] "Unit" ECU1 m0
+SG_ Sensor2Value : 24|16@1 (0.1,0) [0|100] "Unit" ECU1 m1
+
+Learn more about advanced DBC file format concepts on [Embien's Automotive Insights](https://www.embien.com/automotive-insights/advanced-dbc-file-format-concepts).
