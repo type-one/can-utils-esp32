@@ -610,7 +610,7 @@ namespace can
             {
                 sasm = make_sig_agg<sig_last>(sig);
             }
-            if (atype == "FIRST")
+            else if (atype == "FIRST")
             {
                 sasm = make_sig_agg<sig_first>(sig);
             }
