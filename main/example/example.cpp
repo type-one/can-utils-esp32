@@ -95,11 +95,11 @@ inline void print_stats()
 
 /**
  * @brief Generates a CAN frame with random data and CAN ID.
- * 
+ *
  * This function creates a CAN frame with a random 64-bit signed integer as data
  * and a random CAN ID between 1 and 7 (inclusive). The random values are generated
  * using a uniform distribution.
- * 
+ *
  * @return can_frame A CAN frame with random data and CAN ID.
  */
 can_frame generate_frame()
@@ -140,7 +140,8 @@ void print_frames(const can::frame_packet& fp, can::v2c_transcoder& transcoder, 
         auto msg = transcoder.find_message(frame.can_id);
         for (const auto& sig : msg->signals(frame_data))
         {
-            std::printf("  %s: %" PRId64 " \n", sig.name().c_str(), static_cast<std::int64_t>(sig.decode(frame_data)));
+            std::printf("  %s: %" PRId64 " %s\n", sig.name().c_str(), static_cast<std::int64_t>(sig.decode(frame_data)),
+                sig.unit().c_str());
         }
     }
 }

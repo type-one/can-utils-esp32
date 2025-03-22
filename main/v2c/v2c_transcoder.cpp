@@ -375,8 +375,8 @@ namespace can
         {
             std::uint64_t raw = 0U;
             const auto val = std::numeric_limits<T>::max();
-			*((T*)&raw) = val;
-			_val = sig_calc_type<T>(raw);
+            *((T*)&raw) = val;
+            _val = sig_calc_type<T>(raw);
         }
 
         /**
@@ -408,10 +408,10 @@ namespace can
          */
         friend void tag_invoke(reset_cpo, sig_min& self)
         {
-			std::uint64_t raw = 0U;
+            std::uint64_t raw = 0U;
             const auto val = std::numeric_limits<T>::max();
-			*((T*)&raw) = val;
-			self._val = sig_calc_type<T>(raw);
+            *((T*)&raw) = val;
+            self._val = sig_calc_type<T>(raw);
         }
     };
 
@@ -624,7 +624,7 @@ namespace can
             }
             else if (atype == "STDDEV")
             {
-                 sasm = make_sig_agg<sig_std_deviation>(sig);
+                sasm = make_sig_agg<sig_std_deviation>(sig);
             }
             else if (atype == "MAX")
             {

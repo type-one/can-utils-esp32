@@ -116,6 +116,7 @@ namespace can
     {
     private:
         std::string _name; ///< Name of the signal.
+        std::string _unit; ///< Unit of the signal.
         sig_codec _codec;  ///< Codec used for encoding/decoding the signal.
 
         std::string _agg_type = "LAST";       ///< Aggregation type of the signal.
@@ -126,11 +127,13 @@ namespace can
         /**
          * @brief Constructs a tr_signal object.
          * @param name Name of the signal.
+         * @param unit Unit of the signal.
          * @param codec Codec used for encoding/decoding the signal.
          * @param mux_val Optional multiplexer value.
          */
-        tr_signal(std::string name, sig_codec codec, std::optional<std::int64_t> mux_val)
+        tr_signal(std::string name, std::string unit, sig_codec codec, std::optional<std::int64_t> mux_val)
             : _name(std::move(name))
+            , _unit(std::move(unit))
             , _codec(codec)
             , _mux_val(mux_val)
         {
@@ -143,6 +146,15 @@ namespace can
         const std::string& name() const
         {
             return _name;
+        }
+
+        /**
+         * @brief Gets the unit of the signal.
+         * @return The unit of the signal.
+         */
+        const std::string& unit() const
+        {
+            return _unit;
         }
 
         /**
@@ -686,17 +698,17 @@ namespace can
      */
     inline void tag_invoke(def_sg_cpo, v2c_transcoder& this_, std::uint32_t message_id,
         std::optional<unsigned> sg_mux_switch_val, std::string sg_name, unsigned sg_start_bit, unsigned sg_size,
-        char sg_byte_order, char sg_sign, double sg_factor, double sg_offset, double sg_min, double /*sg_max*/,
+        char sg_byte_order, char sg_sign, double sg_factor, double sg_offset, double sg_min, double sg_max,
         std::string sg_unit, std::vector<size_t> rec_ords)
     {
         (void)sg_factor;
         (void)sg_offset;
         (void)sg_min;
-        (void)sg_unit;
+		(void)sg_max;
         (void)rec_ords;
 
         sig_codec codec { sg_start_bit, sg_size, sg_byte_order, sg_sign };
-        tr_signal sig { sg_name, codec, std::optional<std::int64_t>(sg_mux_switch_val) };
+        tr_signal sig { sg_name, sg_unit, codec, std::optional<std::int64_t>(sg_mux_switch_val) };
         this_.add_signal(message_id, std::move(sig));
     }
 
