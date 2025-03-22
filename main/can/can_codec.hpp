@@ -137,26 +137,6 @@ namespace can
         }
 
         /**
-         * @brief Substract two sig_calc_type values.
-         * @param rhs The right-hand side value to substract.
-         * @return The result of the substraction.
-         */
-        sig_calc_type<T> operator-(const sig_calc_type<T>& rhs) const
-        {
-            return from_value(_value - rhs._value);
-        }
-
-        /**
-         * @brief Multiply two sig_calc_type values.
-         * @param rhs The right-hand side value to multiply.
-         * @return The result of the multiplication.
-         */
-        sig_calc_type<T> operator*(const sig_calc_type<T>& rhs) const
-        {
-            return from_value(_value * rhs._value);
-        }
-
-        /**
          * @brief Compare (less) two sig_calc_type values.
          * @param rhs The right-hand side value to compare.
          * @return The result of comparison.
@@ -231,16 +211,6 @@ namespace can
             {
                 return from_value(_value / d);
             }
-        }
-
-        /**
-         * @brief Square root of the sig_calc_type value (positive value).
-         * @return The result of the square root.
-         */
-        sig_calc_type<T> sqrt() const
-        {
-			constexpr const auto zero = static_cast<T>(0);
-            return from_value((_value > zero) ? static_cast<T>(std::sqrt(_value)) : zero);
         }
 
     private:

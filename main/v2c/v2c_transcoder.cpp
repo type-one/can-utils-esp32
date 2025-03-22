@@ -186,68 +186,6 @@ namespace can
         }
     };
 
-    /// @brief Template class for computing the standard deviation of signal values in the aggregate.
-    template <typename T>
-    class sig_std_deviation
-    {
-        const tr_signal _sig;             ///< The signal to be processed.
-        sig_calc_type<T> _sum { 0 };      ///< The accumulated sum of the signal values.
-        sig_calc_type<T> _sum_sq { 0 };   ///< The accumulated sum of the squares of the signal values.
-        std::uint64_t _num_samples { 0 }; ///< The number of samples.
-
-    public:
-        /**
-         * @brief Constructor for sig_std_deviation.
-         * @param sig The signal to be processed.
-         */
-        sig_std_deviation(const tr_signal sig)
-            : _sig(sig)
-        {
-        }
-
-        /**
-         * @brief Assembles the signal value.
-         * @param self Reference to the sig_std_deviation object.
-         * @param mux_val Multiplexer value.
-         * @param fd Frame data.
-         * @return Encoded standard deviation signal value.
-         */
-        friend std::uint64_t tag_invoke(assemble_cpo, sig_std_deviation& self, std::uint64_t mux_val, std::uint64_t fd)
-        {
-            if (!self._sig.is_active(mux_val))
-            {
-                return 0;
-            }
-
-            sig_calc_type<T> val(self._sig.decode(fd));
-            self._sum = (self._num_samples == 0) ? val : self._sum + val;
-            self._sum_sq = (self._num_samples == 0) ? val * val : self._sum_sq + val * val;
-            ++self._num_samples;
-
-            if (self._num_samples < 2)
-            {
-                return 0;
-            }
-
-            sig_calc_type<T> mean = self._sum.idivround(self._num_samples);
-            sig_calc_type<T> variance = (self._sum_sq - mean * self._sum).idivround(self._num_samples - 1);
-            sig_calc_type<T> stddev = variance.sqrt();
-
-            return self._sig.encode(stddev.get_raw());
-        }
-
-        /**
-         * @brief Resets the signal values and sample count.
-         * @param self Reference to the sig_std_deviation object.
-         */
-        friend void tag_invoke(reset_cpo, sig_std_deviation& self)
-        {
-            self._sum = 0;
-            self._sum_sq = 0;
-            self._num_samples = 0;
-        }
-    };
-
     /// @brief Template class for computing the median of signal values in the aggregate.
     template <typename T>
     class sig_median
@@ -621,10 +559,6 @@ namespace can
             else if (atype == "MEDIAN")
             {
                 sasm = make_sig_agg<sig_median>(sig);
-            }
-            else if (atype == "STDDEV")
-            {
-                sasm = make_sig_agg<sig_std_deviation>(sig);
             }
             else if (atype == "MAX")
             {
