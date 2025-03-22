@@ -140,7 +140,8 @@ void print_frames(const can::frame_packet& fp, can::v2c_transcoder& transcoder, 
         auto msg = transcoder.find_message(frame.can_id);
         for (const auto& sig : msg->signals(frame_data))
         {
-            std::printf("  %s: %" PRId64 " %s\n", sig.name().c_str(), static_cast<std::int64_t>(sig.decode(frame_data)),
+			const auto raw = static_cast<std::int64_t>(sig.decode(frame_data));
+            std::printf("  %s: %" PRId64 " (raw) = %f %s\n", sig.name().c_str(), raw, sig.convert(raw),
                 sig.unit().c_str());
         }
     }

@@ -114,10 +114,15 @@ namespace can
      */
     class tr_signal
     {
+    public:
+        using signal_range = std::pair<double, double>;
+
     private:
-        std::string _name; ///< Name of the signal.
-        std::string _unit; ///< Unit of the signal.
-        sig_codec _codec;  ///< Codec used for encoding/decoding the signal.
+        std::string _name;   ///< Name of the signal.
+        std::string _unit;   ///< Unit of the signal.
+        phys_value _phys;    ///< Conversion parameters to get physical values from raw values
+        signal_range _range; ///< Minimum and maximum values of the signal
+        sig_codec _codec;    ///< Codec used for encoding/decoding the signal.
 
         std::string _agg_type = "LAST";       ///< Aggregation type of the signal.
         val_type_t _val_type = i64;           ///< Value type of the signal.
@@ -128,12 +133,17 @@ namespace can
          * @brief Constructs a tr_signal object.
          * @param name Name of the signal.
          * @param unit Unit of the signal.
+         * @param phys Conversion parameters to get physical values from raw values
+         * @param range Minimum and maximum values of the signal
          * @param codec Codec used for encoding/decoding the signal.
          * @param mux_val Optional multiplexer value.
          */
-        tr_signal(std::string name, std::string unit, sig_codec codec, std::optional<std::int64_t> mux_val)
+        tr_signal(std::string name, std::string unit, phys_value phys, signal_range range, sig_codec codec,
+            std::optional<std::int64_t> mux_val)
             : _name(std::move(name))
             , _unit(std::move(unit))
+			, _phys(std::move(phys))
+			, _range(std::move(range))
             , _codec(codec)
             , _mux_val(mux_val)
         {
@@ -211,9 +221,30 @@ namespace can
         {
             _val_type = val_type_t(vt);
             if (_val_type == i64 && _codec.sign_type() == '+')
+            {
                 _val_type = u64;
+            }
         }
 
+		/**
+		 * @brief Converts the raw signal value to a physical value.
+		 * @param data The raw signal value.
+		 * @return The physical value.
+		 */
+		double convert(std::uint64_t data) const
+		{
+			return _phys(data, _val_type);
+		}
+
+		/**
+		 * @brief Clamp the physical signal value into defined signal min/max bounds.
+		 * @param data The physical value.
+		 * @return The clamped physical value.
+		 */
+		double clamp(double phys_value) const
+		{
+			return std::clamp(phys_value, _range.first, _range.second);
+		}
 
         /**
          * @brief Decodes the given data using the codec.
@@ -701,14 +732,12 @@ namespace can
         char sg_byte_order, char sg_sign, double sg_factor, double sg_offset, double sg_min, double sg_max,
         std::string sg_unit, std::vector<size_t> rec_ords)
     {
-        (void)sg_factor;
-        (void)sg_offset;
-        (void)sg_min;
-		(void)sg_max;
         (void)rec_ords;
 
         sig_codec codec { sg_start_bit, sg_size, sg_byte_order, sg_sign };
-        tr_signal sig { sg_name, sg_unit, codec, std::optional<std::int64_t>(sg_mux_switch_val) };
+        const phys_value phys { sg_factor, sg_offset };
+        tr_signal::signal_range range = std::make_pair(sg_min, sg_max);
+        tr_signal sig { sg_name, sg_unit, phys, range, codec, std::optional<std::int64_t>(sg_mux_switch_val) };
         this_.add_signal(message_id, std::move(sig));
     }
 
