@@ -32,8 +32,10 @@
 // https://github.com/mireo/can-utils                                          //
 //-----------------------------------------------------------------------------//
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -324,19 +326,19 @@ namespace can
         return make_rv(iter, rng.end(), true);
     };
 
-	/**
-	 * @brief Parses the SG_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param nodes The nodes.
-	 * @param ipt The interpreter.
-	 * @param can_id The CAN ID.
-	 * @return The parse result value.
-	 *
-	 * @note The SG_ section in a DBC file defines the signals within a message. Each signal represents a piece of data
-	 *       transmitted in the message, including its name, start bit, size, byte order, value type, factor, offset,
-	 *       minimum and maximum values, unit, and the nodes that receive the signal.
-	 */
+    /**
+     * @brief Parses the SG_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @param can_id The CAN ID.
+     * @return The parse result value.
+     *
+     * @note The SG_ section in a DBC file defines the signals within a message. Each signal represents a piece of data
+     *       transmitted in the message, including its name, start bit, size, byte order, value type, factor, offset,
+     *       minimum and maximum values, unit, and the nodes that receive the signal.
+     */
     static const parse_rv parse_sg_(std::string_view rng, const nodes_t& nodes, interpreter& ipt, std::uint32_t can_id)
     {
         bool has_sect = false;
@@ -386,19 +388,19 @@ namespace can
     }
 
 
-	/**
-	 * @brief Parses the BO_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param nodes The nodes.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The BO_ section in a DBC file defines the messages (frames) in the CAN network.
-	 *       It specifies the message ID, message name, message size, and the transmitter node.
-	 *       Each message can contain multiple signals (SG_) that represent the data transmitted
-	 *       within the message.
-	 */
+    /**
+     * @brief Parses the BO_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The BO_ section in a DBC file defines the messages (frames) in the CAN network.
+     *       It specifies the message ID, message name, message size, and the transmitter node.
+     *       Each message can contain multiple signals (SG_) that represent the data transmitted
+     *       within the message.
+     */
     static const parse_rv parse_bo_(std::string_view rng, const nodes_t& nodes, interpreter& ipt)
     {
         bool has_sect = false;
@@ -431,19 +433,19 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the EV_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param nodes The nodes.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The EV_ section in a DBC file defines the environment variables used in the CAN network.
-	 *       Environment variables are used to store values that can be shared across different nodes
-	 *       and messages in the network. They can represent various types of data, such as counters,
-	 *       timers, or configuration parameters.
-	 */
+    /**
+     * @brief Parses the EV_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The EV_ section in a DBC file defines the environment variables used in the CAN network.
+     *       Environment variables are used to store values that can be shared across different nodes
+     *       and messages in the network. They can represent various types of data, such as counters,
+     *       timers, or configuration parameters.
+     */
     static const parse_rv parse_ev_(std::string_view rng, const nodes_t& nodes, interpreter& ipt)
     {
         bool has_sect = false;
@@ -477,18 +479,18 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the ENVVAR_DATA_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The ENVVAR_DATA_ section in a DBC file defines the size of environment variables.
-	 *       Environment variables are used to store values that can be shared across different nodes
-	 *       and messages in the network. This section specifies the size of the data associated with
-	 *       each environment variable.
-	 */
+    /**
+     * @brief Parses the ENVVAR_DATA_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The ENVVAR_DATA_ section in a DBC file defines the size of environment variables.
+     *       Environment variables are used to store values that can be shared across different nodes
+     *       and messages in the network. This section specifies the size of the data associated with
+     *       each environment variable.
+     */
     static const parse_rv parse_envvar_data_(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -512,18 +514,18 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the SGTYPE_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param val_tables The value tables.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The SGTYPE_ section in a DBC file defines signal types. It specifies the characteristics of signals,
-	 *       such as size, byte order, sign, factor, offset, minimum and maximum values, unit, default value, and
-	 *       value table. This section can also reference existing signal types for specific messages and signals.
-	 */
+    /**
+     * @brief Parses the SGTYPE_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param val_tables The value tables.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The SGTYPE_ section in a DBC file defines signal types. It specifies the characteristics of signals,
+     *       such as size, byte order, sign, factor, offset, minimum and maximum values, unit, default value, and
+     *       value table. This section can also reference existing signal types for specific messages and signals.
+     */
     static const parse_rv parse_sgtype_(std::string_view rng, const nodes_t& val_tables, interpreter& ipt)
     {
         bool has_sect = false;
@@ -571,18 +573,18 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the SIG_GROUP_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The SIG_GROUP_ section in a DBC file defines a group of signals that are transmitted together.
-	 *       It specifies the message ID, signal group name, the number of repetitions, and the list of signal names
-	 *       that belong to the group. This section is used to group related signals for easier management and
-	 *       interpretation.
-	 */
+    /**
+     * @brief Parses the SIG_GROUP_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The SIG_GROUP_ section in a DBC file defines a group of signals that are transmitted together.
+     *       It specifies the message ID, signal group name, the number of repetitions, and the list of signal names
+     *       that belong to the group. This section is used to group related signals for easier management and
+     *       interpretation.
+     */
     static const parse_rv parse_sig_group_(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -607,18 +609,18 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the CM_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param nodes The nodes.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The CM_ section in a DBC file is used to add comments to various elements within the file.
-	 *       These comments can be associated with messages, signals, nodes, or environment variables.
-	 *       The comments provide additional information or documentation for the elements they are associated with.
-	 */
+    /**
+     * @brief Parses the CM_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The CM_ section in a DBC file is used to add comments to various elements within the file.
+     *       These comments can be associated with messages, signals, nodes, or environment variables.
+     *       The comments provide additional information or documentation for the elements they are associated with.
+     */
     static const parse_rv parse_cm_(std::string_view rng, const nodes_t& nodes, interpreter& ipt)
     {
         bool has_sect = false;
@@ -677,19 +679,20 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the BA_DEF_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param ats_ The attribute types.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The BA_DEF_ section in a DBC file defines attribute definitions. 
-	 *       It specifies the name, type, and range of attributes that can be associated with various elements 
-	 *       in the DBC file, such as nodes, messages, signals, and environment variables. 
-	 *       These attributes provide additional metadata and configuration options for the elements they are associated with.
-	 */
+    /**
+     * @brief Parses the BA_DEF_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ats_ The attribute types.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The BA_DEF_ section in a DBC file defines attribute definitions.
+     *       It specifies the name, type, and range of attributes that can be associated with various elements
+     *       in the DBC file, such as nodes, messages, signals, and environment variables.
+     *       These attributes provide additional metadata and configuration options for the elements they are associated
+     * with.
+     */
     static const parse_rv parse_ba_def_(std::string_view rng, attr_types_t& ats_, interpreter& ipt)
     {
         bool has_sect = false;
@@ -750,20 +753,20 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the BA_DEF_DEF_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param ats_ The attribute types.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The BA_DEF_DEF_ section in a DBC file defines the default values for attributes.
-	 *       It specifies the default value for each attribute defined in the BA_DEF_ section.
-	 *       These default values are used when no specific value is provided for an attribute
-	 *       in the DBC file. This section helps in maintaining consistent attribute values
-	 *       across different elements in the DBC file.
-	 */
+    /**
+     * @brief Parses the BA_DEF_DEF_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ats_ The attribute types.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The BA_DEF_DEF_ section in a DBC file defines the default values for attributes.
+     *       It specifies the default value for each attribute defined in the BA_DEF_ section.
+     *       These default values are used when no specific value is provided for an attribute
+     *       in the DBC file. This section helps in maintaining consistent attribute values
+     *       across different elements in the DBC file.
+     */
     static const parse_rv parse_ba_def_def_(std::string_view rng, const attr_types_t& ats_, interpreter& ipt)
     {
         bool has_sect = false;
@@ -789,19 +792,20 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the BA_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param nodes The nodes.
-	 * @param ats_ The attribute types.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The BA_ section in a DBC file defines attribute values for various elements such as nodes, messages, signals, and environment variables.
-	 *       These attributes provide additional metadata and configuration options for the elements they are associated with.
-	 *       The BA_ section specifies the actual values for the attributes defined in the BA_DEF_ section.
-	 */
+    /**
+     * @brief Parses the BA_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param nodes The nodes.
+     * @param ats_ The attribute types.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The BA_ section in a DBC file defines attribute values for various elements such as nodes, messages,
+     * signals, and environment variables. These attributes provide additional metadata and configuration options for
+     * the elements they are associated with. The BA_ section specifies the actual values for the attributes defined in
+     * the BA_DEF_ section.
+     */
     static const parse_rv parse_ba_(
         std::string_view rng, const nodes_t& nodes, const attr_types_t& ats_, interpreter& ipt)
     {
@@ -844,18 +848,18 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the VAL_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The VAL_ section in a DBC file defines the value descriptions for signals or environment variables.
-	 *       It maps specific values to human-readable descriptions, which helps in interpreting the raw data
-	 *       transmitted over the CAN network. Each entry in the VAL_ section associates a value with a description
-	 *       for a particular signal or environment variable.
-	 */
+    /**
+     * @brief Parses the VAL_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The VAL_ section in a DBC file defines the value descriptions for signals or environment variables.
+     *       It maps specific values to human-readable descriptions, which helps in interpreting the raw data
+     *       transmitted over the CAN network. Each entry in the VAL_ section associates a value with a description
+     *       for a particular signal or environment variable.
+     */
     static const parse_rv parse_val_(std::string_view rng, interpreter& ipt)
     {
         using val_desc = std::pair<unsigned, std::string>;
@@ -889,19 +893,19 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the VAL_TABLE_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param val_tables The value tables.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The VAL_TABLE_ section in a DBC file defines value tables that map specific values to human-readable
-	 *       descriptions. These tables are used to interpret the raw data values in a more meaningful way.
-	 *       Each value table consists of a set of value-description pairs, which can be referenced by signals
-	 *       or environment variables to provide context for the data being transmitted over the CAN network.
-	 */
+    /**
+     * @brief Parses the VAL_TABLE_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param val_tables The value tables.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The VAL_TABLE_ section in a DBC file defines value tables that map specific values to human-readable
+     *       descriptions. These tables are used to interpret the raw data values in a more meaningful way.
+     *       Each value table consists of a set of value-description pairs, which can be referenced by signals
+     *       or environment variables to provide context for the data being transmitted over the CAN network.
+     */
     static const parse_rv parse_val_table_(std::string_view rng, nodes_t& val_tables, interpreter& ipt)
     {
         using val_desc = std::pair<unsigned, std::string>;
@@ -930,18 +934,18 @@ namespace can
     }
 
     /**
-	 * @brief Parses the SIG_VALTYPE_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The SIG_VALTYPE_ section in a DBC file defines the extended value type for signals.
-	 *       It specifies the message ID, signal name, and the extended value type, which indicates
-	 *       how the signal's value should be interpreted. This section helps in providing additional
-	 *       context for the signal's data representation, such as whether it is an integer, float,
-	 *       or another type.
-	 */
+     * @brief Parses the SIG_VALTYPE_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The SIG_VALTYPE_ section in a DBC file defines the extended value type for signals.
+     *       It specifies the message ID, signal name, and the extended value type, which indicates
+     *       how the signal's value should be interpreted. This section helps in providing additional
+     *       context for the signal's data representation, such as whether it is an integer, float,
+     *       or another type.
+     */
     static const parse_rv parse_sig_valtype_(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -965,18 +969,18 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the BO_TX_BU_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The BO_TX_BU_ section in a DBC file defines the transmitters for a message.
-	 *       It specifies the message ID and a list of nodes (ECUs) that are responsible
-	 *       for transmitting the message. This section helps in identifying which nodes
-	 *       are allowed to send a particular message on the CAN network.
-	 */
+    /**
+     * @brief Parses the BO_TX_BU_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The BO_TX_BU_ section in a DBC file defines the transmitters for a message.
+     *       It specifies the message ID and a list of nodes (ECUs) that are responsible
+     *       for transmitting the message. This section helps in identifying which nodes
+     *       are allowed to send a particular message on the CAN network.
+     */
     static const parse_rv parse_bo_tx_bu(std::string_view rng, interpreter& ipt)
     {
         bool has_sect = false;
@@ -999,19 +1003,19 @@ namespace can
         return make_rv(rng.end(), rng.end(), true);
     }
 
-	/**
-	 * @brief Parses the SG_MUL_VAL_ section of the DBC file.
-	 *
-	 * @param rng The input range.
-	 * @param ipt The interpreter.
-	 * @return The parse result value.
-	 *
-	 * @note The SG_MUL_VAL_ section in a DBC file defines the multiplexed signal values.
-	 *       It specifies the message ID, the name of the multiplexed signal, the name of the
-	 *       multiplex switch, and the value ranges for the multiplexed signal. This section
-	 *       helps in interpreting the values of signals that are multiplexed within a message,
-	 *       allowing for more efficient use of the CAN network bandwidth.
-	 */
+    /**
+     * @brief Parses the SG_MUL_VAL_ section of the DBC file.
+     *
+     * @param rng The input range.
+     * @param ipt The interpreter.
+     * @return The parse result value.
+     *
+     * @note The SG_MUL_VAL_ section in a DBC file defines the multiplexed signal values.
+     *       It specifies the message ID, the name of the multiplexed signal, the name of the
+     *       multiplex switch, and the value ranges for the multiplexed signal. This section
+     *       helps in interpreting the values of signals that are multiplexed within a message,
+     *       allowing for more efficient use of the CAN network bandwidth.
+     */
     static const parse_rv parse_sg_mul_val_(std::string_view rng, interpreter& ipt)
     {
         using value_range = std::pair<unsigned, unsigned>;
@@ -1040,152 +1044,178 @@ namespace can
     }
 
     /**
+     * @brief Finds a phrase in a text and returns the line number where it occurs.
+     *
+     * @param text The text to search in.
+     * @param phrase The phrase to search for.
+     * @return The line number where the phrase occurs, or -1 if not found.
+     */
+    static int find_phrase_in_text(std::string_view text, std::string_view phrase)
+    {
+        int line_number = 1;
+        auto it = text.begin();
+        while (it != text.end())
+        {
+            auto line_end = std::find(it, text.end(), '\n');
+            std::string_view line(it, line_end - it);
+            if (line.find(phrase) != std::string_view::npos)
+            {
+                return line_number;
+            }
+            it = (line_end != text.end()) ? line_end + 1 : line_end;
+            ++line_number;
+        }
+        return -1;
+    }
+
+    /**
      * @brief Reports a syntax error.
      *
      * @param where The location of the error.
      * @param what The error message.
      * @return false Always returns false.
      */
-    static bool syntax_error(std::string_view where, std::string_view what = "")
+    static bool syntax_error(std::string_view dbc_src, std::string_view where, std::string_view what = "")
     {
         auto eol = where.find('\n');
         std::string_view line { where.begin(), eol != std::string_view::npos ? where.begin() + eol : where.end() };
-        fprintf(stderr, "Syntax error: %s\n => %s\n", what.data(), std::string(line).c_str());
+        auto line_nr = find_phrase_in_text(dbc_src, line);
+        std::fprintf(stderr, "Syntax error: %s at line %d\n => %s\n", what.data(), line_nr, std::string(line).c_str());
         return false;
     }
 
-	bool parse_dbc(std::string_view dbc_src, interpreter ipt)
-	{
-		auto pv = skip_blines(dbc_src);
-		bool expected = true;
+    bool parse_dbc(std::string_view dbc_src, interpreter ipt)
+    {
+        auto pv = skip_blines(dbc_src);
+        bool expected = true;
 
-		// Parse VERSION section
-		if (std::tie(pv, expected) = parse_version(pv, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse VERSION section
+        if (std::tie(pv, expected) = parse_version(pv, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse NS_ section
-		if (std::tie(pv, expected) = parse_ns_(pv); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse NS_ section
+        if (std::tie(pv, expected) = parse_ns_(pv); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse BS_ section
-		if (std::tie(pv, expected) = parse_bs_(pv); !expected)
-		{
-			return syntax_error(pv, "(expected correct BS_)");
-		}
+        // Parse BS_ section
+        if (std::tie(pv, expected) = parse_bs_(pv); !expected)
+        {
+            return syntax_error(dbc_src, pv, "(expected correct BS_)");
+        }
 
-		nodes_t nodes;
+        nodes_t nodes;
 
-		// Parse BU_ section
-		if (std::tie(pv, expected) = parse_bu_(pv, nodes, ipt); !expected)
-		{
-			return syntax_error(pv, "(expected correct BU_)");
-		}
+        // Parse BU_ section
+        if (std::tie(pv, expected) = parse_bu_(pv, nodes, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv, "(expected correct BU_)");
+        }
 
-		nodes_t val_tables;
+        nodes_t val_tables;
 
-		// Parse VAL_TABLE_ section
-		if (std::tie(pv, expected) = parse_val_table_(pv, val_tables, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse VAL_TABLE_ section
+        if (std::tie(pv, expected) = parse_val_table_(pv, val_tables, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse BO_ section
-		if (std::tie(pv, expected) = parse_bo_(pv, nodes, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse BO_ section
+        if (std::tie(pv, expected) = parse_bo_(pv, nodes, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse BO_TX_BU_ section
-		if (std::tie(pv, expected) = parse_bo_tx_bu(pv, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse BO_TX_BU_ section
+        if (std::tie(pv, expected) = parse_bo_tx_bu(pv, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse EV_ section
-		if (std::tie(pv, expected) = parse_ev_(pv, nodes, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse EV_ section
+        if (std::tie(pv, expected) = parse_ev_(pv, nodes, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse ENVVAR_DATA_ section
-		if (std::tie(pv, expected) = parse_envvar_data_(pv, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse ENVVAR_DATA_ section
+        if (std::tie(pv, expected) = parse_envvar_data_(pv, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse VAL_ section
-		if (std::tie(pv, expected) = parse_val_(pv, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse VAL_ section
+        if (std::tie(pv, expected) = parse_val_(pv, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse SGTYPE_ section
-		if (std::tie(pv, expected) = parse_sgtype_(pv, val_tables, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse SGTYPE_ section
+        if (std::tie(pv, expected) = parse_sgtype_(pv, val_tables, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse SIG_GROUP_ section
-		if (std::tie(pv, expected) = parse_sig_group_(pv, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse SIG_GROUP_ section
+        if (std::tie(pv, expected) = parse_sig_group_(pv, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse CM_ section
-		if (std::tie(pv, expected) = parse_cm_(pv, nodes, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse CM_ section
+        if (std::tie(pv, expected) = parse_cm_(pv, nodes, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		attr_types_t attr_types;
+        attr_types_t attr_types;
 
-		// Parse BA_DEF_ section
-		if (std::tie(pv, expected) = parse_ba_def_(pv, attr_types, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse BA_DEF_ section
+        if (std::tie(pv, expected) = parse_ba_def_(pv, attr_types, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse BA_DEF_DEF_ section
-		if (std::tie(pv, expected) = parse_ba_def_def_(pv, attr_types, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse BA_DEF_DEF_ section
+        if (std::tie(pv, expected) = parse_ba_def_def_(pv, attr_types, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse BA_ section
-		if (std::tie(pv, expected) = parse_ba_(pv, nodes, attr_types, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse BA_ section
+        if (std::tie(pv, expected) = parse_ba_(pv, nodes, attr_types, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse VAL_ section again
-		if (std::tie(pv, expected) = parse_val_(pv, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse VAL_ section again
+        if (std::tie(pv, expected) = parse_val_(pv, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse SIG_VALTYPE_ section
-		if (std::tie(pv, expected) = parse_sig_valtype_(pv, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse SIG_VALTYPE_ section
+        if (std::tie(pv, expected) = parse_sig_valtype_(pv, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Parse SG_MUL_VAL_ section
-		if (std::tie(pv, expected) = parse_sg_mul_val_(pv, ipt); !expected)
-		{
-			return syntax_error(pv);
-		}
+        // Parse SG_MUL_VAL_ section
+        if (std::tie(pv, expected) = parse_sg_mul_val_(pv, ipt); !expected)
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		// Check for any remaining unparsed content
-		if (!pv.empty())
-		{
-			return syntax_error(pv);
-		}
+        // Check for any remaining unparsed content
+        if (!pv.empty())
+        {
+            return syntax_error(dbc_src, pv);
+        }
 
-		return true;
-	}
+        return true;
+    }
 
 } // end namespace can
