@@ -59,7 +59,6 @@
 #include <cstdio>
 #include <random>
 
-
 #include "tools/platform_detection.hpp"
 
 #if defined(FREERTOS_PLATFORM)
@@ -128,14 +127,38 @@ void print_frames(const can::frame_packet& fp, can::v2c_transcoder& transcoder, 
 {
     using namespace std::chrono;
 
+    static const auto start_frame_utc_time { system_clock::now() };
+
     std::printf("New frame_packet (from %" PRId32 " frames\n", frame_counter);
 
-    for (const auto& [ts, frame] : fp)
+    for (const auto& [ts_utc, frame] : fp)
     {
         auto frame_data = std::bit_cast<std::int64_t>(frame.data);
-        auto t = duration_cast<milliseconds>(ts.time_since_epoch()).count() / 1000.0;
 
-        std::printf(" can_frame at t: %f ms (can id %" PRIu32 ")\n", t, frame.can_id);
+        auto ts_date = year_month_day(floor<days>(ts_utc));
+
+        // Convert the time_point to a duration since epoch
+        auto duration_since_epoch = ts_utc.time_since_epoch();
+
+        // Get the duration since the start of the current day
+        auto days_since_epoch = floor<days>(duration_since_epoch);
+        auto time_since_midnight = duration_since_epoch - days_since_epoch;
+
+        // Use hh_mm_ss to split the time_since_midnight into hours, minutes, seconds, and milliseconds
+        hh_mm_ss<duration<std::uint64_t, std::milli>> time_components {
+            duration_cast<duration<std::uint64_t, std::milli>>(time_since_midnight)
+        };        
+
+        auto t_sec
+            = duration_cast<milliseconds>(ts_utc.time_since_epoch() - start_frame_utc_time.time_since_epoch()).count()
+            / 1000.0;
+
+        // Print the UTC time of day using std::printf
+        std::printf(" can_frame at t: %f sec (can id %" PRIu32 ") (UTC Time: %04d/%02u/%02u %02d:%02d:%02d:%03d)\n",
+            t_sec, frame.can_id, static_cast<int>(ts_date.year()), static_cast<unsigned int>(ts_date.month()),
+            static_cast<unsigned int>(ts_date.day()), static_cast<int>(time_components.hours().count()),
+            static_cast<int>(time_components.minutes().count()), static_cast<int>(time_components.seconds().count()),
+            static_cast<int>(time_components.subseconds().count()));
 
         auto msg = transcoder.find_message(frame.can_id);
         for (const auto& sig : msg->signals(frame_data))
