@@ -30,7 +30,7 @@
 
 /*
 
-|DBC version (2 byte)|UTC (4 byte)|
+|DBC version (2 byte)|UTC (8 byte)|
 |usec part (4 byte)|CAN frame|
 |usec part (4 byte)|CAN frame|
 ...
@@ -39,6 +39,10 @@
 
 namespace can
 {
+    constexpr const std::size_t dbc_version_offset = 0U;
+    constexpr const std::size_t utc_offset = 2U;
+    constexpr const std::size_t frame_offset = 10U;
+    constexpr const std::size_t usec_part_sz = 4U;
 
     inline void use_non_muxed(can_frame& cf, bool use)
     {
@@ -78,7 +82,7 @@ namespace can
         frame_packet(const frame_packet&) = delete;
         frame_packet& operator=(const frame_packet&) = delete;
 
-        void prepare(std::uint32_t utc)
+        void prepare(std::uint64_t utc)
         {
             _buff.resize(0);
             _buff.reserve(32 * 1024);
@@ -90,14 +94,14 @@ namespace can
             append(utc);
         }
 
-        std::uint32_t utc() const
+        std::uint64_t utc() const
         {
-            return *(const std::uint32_t*)(_buff.data() + 2);
+            return *(const std::uint64_t*)(_buff.data() + utc_offset);
         }
 
         bool empty() const
         {
-            return _buff.size() <= 6;
+            return _buff.size() <= frame_offset;
         }
 
         std::size_t byte_size() const
@@ -142,7 +146,7 @@ namespace can
     class frame_iterator
     {
         const frame_packet& _frame_packet;
-        std::uint32_t _packet_utc = 0;
+        std::uint64_t _packet_utc = 0U;
         const std::uint8_t* _msg_iter;
 
     public:
@@ -150,7 +154,7 @@ namespace can
             : _frame_packet(fp)
         {
             _packet_utc = fp.utc();
-            _msg_iter = fp.data_begin() + 6;
+            _msg_iter = fp.data_begin() + frame_offset;
         }
 
         ~frame_iterator()
@@ -173,7 +177,7 @@ namespace can
             std::int32_t millis = *(const std::int32_t*)_msg_iter;
             can_frame frame;
 
-            std::memcpy(&frame, _msg_iter + 4, sizeof(can_frame));
+            std::memcpy(&frame, _msg_iter + usec_part_sz, sizeof(can_frame));
             return { can_time(seconds(_packet_utc)) + milliseconds(millis), std::move(frame) };
         }
 
@@ -184,7 +188,7 @@ namespace can
                 return *this;
 			}
 
-            _msg_iter += 4 + sizeof(can_frame);
+            _msg_iter += usec_part_sz + sizeof(can_frame);
 
             return *this;
         }

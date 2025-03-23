@@ -135,14 +135,14 @@ void print_frames(const can::frame_packet& fp, can::v2c_transcoder& transcoder, 
         auto frame_data = std::bit_cast<std::int64_t>(frame.data);
         auto t = duration_cast<milliseconds>(ts.time_since_epoch()).count() / 1000.0;
 
-        std::printf(" can_frame at t: %f ms %" PRIu32 "\n", t, frame.can_id);
+        std::printf(" can_frame at t: %f ms (can id %" PRIu32 ")\n", t, frame.can_id);
 
         auto msg = transcoder.find_message(frame.can_id);
         for (const auto& sig : msg->signals(frame_data))
         {
-			const auto raw = static_cast<std::int64_t>(sig.decode(frame_data));
-            std::printf("  %s: %" PRId64 " (raw) = %f %s\n", sig.name().c_str(), raw, sig.convert(raw),
-                sig.unit().c_str());
+            const auto raw = static_cast<std::int64_t>(sig.decode(frame_data));
+            std::printf(
+                "  %s: %" PRId64 " (raw) = %f %s\n", sig.name().c_str(), raw, sig.convert(raw), sig.unit().c_str());
         }
     }
 }

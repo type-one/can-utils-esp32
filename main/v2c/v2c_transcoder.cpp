@@ -359,7 +359,7 @@ namespace can
      * @param utc UTC time in seconds.
      * @return Difference in milliseconds.
      */
-    static std::int32_t millis_diff(can_time tp, std::uint32_t utc)
+    static std::int64_t millis_diff(can_time tp, std::uint64_t utc)
     {
         using namespace std::chrono;
         return duration_cast<milliseconds>(tp - can_time(seconds(utc))).count();
@@ -403,7 +403,7 @@ namespace can
             prev_id = cf.can_id;
             auto raw_data = smsg.mdata;
             std::memcpy(cf.data, &raw_data, CAN_MAX_DLEN);
-            fp.append(millis_diff(tp, fp.utc()));
+            fp.append(static_cast<std::int32_t>(millis_diff(tp, fp.utc())));
             fp.append(cf);
         }
     }
