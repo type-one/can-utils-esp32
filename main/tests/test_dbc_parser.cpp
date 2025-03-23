@@ -1138,8 +1138,8 @@ TEST_F(DbcParserTest, ParseDBC3)
 
 TEST_F(DbcParserTest, ParseDBC4)
 {
-	// Syntax error:
-    // => VAL_ 264 DI_torqueDriver -4096 "SNA" ;
-	// unsupported ?
-    EXPECT_FALSE(can::parse_dbc(dbc_4, std::ref(ipt)));
+    // note: at line 732 => VAL_ 264 DI_torqueDriver -4096 "SNA" ;
+	// -4096 is a negative value
+	// grammar relaxed to support signed integers instead of only unsigned integers
+    EXPECT_TRUE(can::parse_dbc(dbc_4, std::ref(ipt)));
 }

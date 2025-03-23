@@ -167,7 +167,7 @@ namespace can
     {
         /**
          * @brief A Boost.Spirit parser rule that matches one or more end-of-line (EOL) characters.
-         * 
+         *
          * This parser rule uses `x3::omit` to ignore the matched EOL characters in the output,
          * effectively skipping over them during parsing. The `+x3::eol` part specifies that
          * one or more EOL characters should be matched.
@@ -225,16 +225,16 @@ namespace can
 
         /**
          * Parses the VERSION section of the DBC file.
-         * 
+         *
          * This parser expects the following format:
          * - The keyword "VERSION" followed by one or more blank spaces.
          * - A quoted string representing the version.
          * - The end of the command.
-         * 
+         *
          * The parser omits the "VERSION" keyword and the following blanks,
          * sets a flag indicating that the VERSION section has been parsed,
          * and extracts the quoted version string into the `version` variable.
-         * 
+         *
          * The `to(has_sect)` and `to(version)` are semantic actions that
          * store the parsed values into the corresponding variables.
          */
@@ -285,10 +285,12 @@ namespace can
          * ignoring any spaces between them. The parsing ends when the `end_cmd_` rule is encountered.
          *
          * The structure of the parser is as follows:
-         * - `x3::omit[x3::lexeme[x3::lit("NS_") >> +x3::blank >> ':']]`: Matches "NS_" followed by spaces and a colon, but omits it from the attribute.
+         * - `x3::omit[x3::lexeme[x3::lit("NS_") >> +x3::blank >> ':']]`: Matches "NS_" followed by spaces and a colon,
+         * but omits it from the attribute.
          * - `x3::attr(true)[to(has_sect)]`: Sets the `has_sect` attribute to true.
          * - `x3::omit[+x3::space]`: Skips any additional spaces.
-         * - `x3::omit[*(ns_syms_ >> x3::omit[+x3::space])]`: Processes the symbols in `ns_syms_`, ignoring spaces between them.
+         * - `x3::omit[*(ns_syms_ >> x3::omit[+x3::space])]`: Processes the symbols in `ns_syms_`, ignoring spaces
+         * between them.
          * - `end_cmd_`: Ends the parsing when this rule is encountered.
          */
         const auto ns_ = x3::omit[x3::lexeme[x3::lit("NS_") >> +x3::blank >> ':']] >> x3::attr(true)[to(has_sect)]
@@ -457,7 +459,8 @@ namespace can
          * - List of nodes separated by commas
          * - End of command
          *
-         * Each parsed element is passed to a corresponding handler function (e.g., to(sg_name), to(sg_start_bit), etc.).
+         * Each parsed element is passed to a corresponding handler function (e.g., to(sg_name), to(sg_start_bit),
+         * etc.).
          */
         const auto sg_ = x3::omit[x3::lexeme[x3::lit("SG_") >> +x3::blank]] >> x3::attr(true)[to(has_sect)]
             >> name_[to(sg_name)] >> mux_ >> od(':') >> x3::uint_[to(sg_start_bit)] >> od('|') >> x3::uint_[to(sg_size)]
@@ -594,7 +597,7 @@ namespace can
          * @brief Parses an EV_ (event) entry in a DBC file using Boost.Spirit.
          *
          * This parser is designed to match and extract information from an EV_ entry in a DBC file.
-         * The EV_ entry typically contains information about events, including their name, type, 
+         * The EV_ entry typically contains information about events, including their name, type,
          * range, unit, initial value, ID, access type, and access nodes.
          *
          * The parser performs the following steps:
@@ -878,7 +881,7 @@ namespace can
 
         /**
          * Parses a comment string enclosed in double quotes, allowing for escaped quotes and newlines.
-         * 
+         *
          * The comment string is defined as:
          * - Starting with a double quote (")
          * - Followed by zero or more characters that can be:
@@ -886,7 +889,7 @@ namespace can
          *   - Any character except a double quote (")
          *   - A newline character
          * - Ending with a double quote (")
-         * 
+         *
          * This parser uses Boost.Spirit's x3::lexeme to ensure the entire sequence is treated as a single token.
          */
         const auto comment_
@@ -976,7 +979,8 @@ namespace can
          * The parser performs the following steps:
          * 1. Omits the "CM_" literal followed by one or more blank spaces.
          * 2. Sets an attribute to true to indicate the presence of a comment section.
-         * 3. Parses one of the possible comment types: signal (cm_sg_), message (cm_bo_), node (cm_bu_), environment variable (cm_ev_), or global (cm_glob_).
+         * 3. Parses one of the possible comment types: signal (cm_sg_), message (cm_bo_), node (cm_bu_), environment
+         * variable (cm_ev_), or global (cm_glob_).
          * 4. Ensures the comment section ends with a semicolon (';').
          * 5. Ends the command parsing.
          *
@@ -1091,13 +1095,13 @@ namespace can
 
         /**
          * @brief Parses a string literal "STRING" and converts it to a std::string.
-         * 
-         * This line uses Boost.Spirit X3 to define a parser that matches the exact 
-         * string "STRING" and converts it to a std::string. The result is then 
-         * passed to the `to` function which presumably processes or stores the 
+         *
+         * This line uses Boost.Spirit X3 to define a parser that matches the exact
+         * string "STRING" and converts it to a std::string. The result is then
+         * passed to the `to` function which presumably processes or stores the
          * parsed string in `data_type`.
-         * 
-         * @note This parser is part of a larger grammar likely used for parsing 
+         *
+         * @note This parser is part of a larger grammar likely used for parsing
          * DBC (Database CAN) files.
          */
         const auto att_str_ = as<std::string>(x3::lexeme[x3::lit("STRING")])[to(data_type)];
@@ -1257,21 +1261,22 @@ namespace can
         std::uint32_t message_id;
         std::string object_name;
 
-        // Define parsers for attribute values based on their context (global, node, signal, message, environment variable)
+        // Define parsers for attribute values based on their context (global, node, signal, message, environment
+        // variable)
         const auto av_glob_ = lazy<attr_val_rule>[to(attr_val)];
-        
+
         // Parser for node (BU_) attribute values
         const auto av_bu_ = x3::lexeme[x3::string("BU_")[to(object_type)] >> +x3::blank] >> nodes[to(bu_ord)]
             >> lazy<attr_val_rule>[to(attr_val)];
-        
+
         // Parser for signal (SG_) attribute values
         const auto av_sg_ = x3::lexeme[x3::string("SG_")[to(object_type)] >> +x3::blank] >> x3::uint_[to(message_id)]
             >> name_[to(object_name)] >> lazy<attr_val_rule>[to(attr_val)];
-        
+
         // Parser for message (BO_) attribute values
         const auto av_bo_ = x3::lexeme[x3::string("BO_")[to(object_type)] >> +x3::blank] >> x3::uint_[to(message_id)]
             >> lazy<attr_val_rule>[to(attr_val)];
-        
+
         // Parser for environment variable (EV_) attribute values
         const auto av_ev_ = x3::lexeme[x3::string("EV_")[to(object_type)] >> +x3::blank] >> name_[to(object_name)]
             >> lazy<attr_val_rule>[to(attr_val)];
@@ -1354,7 +1359,7 @@ namespace can
          * - Matches the literal "VAL_" followed by one or more blank spaces, which is omitted from the result.
          * - Sets a boolean attribute to true indicating the presence of the VAL_ section.
          * - Parses either an environment variable name or a message ID followed by a signal name.
-         * - Parses zero or more value descriptions, each consisting of an unsigned integer followed by a quoted name.
+         * - Parses zero or more value descriptions, each consisting of an signed integer followed by a quoted name.
          * - Matches an optional delimiter (';') and the end of the command.
          *
          * @param to(has_sect) A function to set the presence of the VAL_ section.
@@ -1365,9 +1370,13 @@ namespace can
          * @param od A parser for an optional delimiter.
          * @param end_cmd_ A parser for the end of the command.
          */
+
+        // relaxed to allow negative values for val_desc (i.e. Tesla DBC example)
+        // the original (*as<val_desc>(x3::uint_ >> quoted_name_))[to(val_descs)] changed to
+        // (*as<val_desc>(x3::int_ >> quoted_name_))[to(val_descs)]
         const auto val_ = x3::omit[x3::lexeme[x3::lit("VAL_") >> +x3::blank]] >> x3::attr(true)[to(has_sect)]
             >> (name_[to(env_var_name)] | (x3::uint_[to(msg_id)] >> name_[to(signal_name)]))
-            >> (*as<val_desc>(x3::uint_ >> quoted_name_))[to(val_descs)] >> od(';') >> end_cmd_;     
+            >> (*as<val_desc>(x3::int_ >> quoted_name_))[to(val_descs)] >> od(';') >> end_cmd_;
 
         for (auto iter = rng.begin(); iter != rng.end(); has_sect = false)
         {
@@ -1578,25 +1587,25 @@ namespace can
          *
          * This parser is designed to match and extract information from the "SG_MUL_VAL_" section
          * of a DBC (Database Container) file, which is used in CAN (Controller Area Network) communication.
-         * 
+         *
          * The parser expects the following format:
-         * 
+         *
          * SG_MUL_VAL_ <msg_id> <mux_sig_name> <mux_switch_name> <val_range_1>,<val_range_2>,...;
-         * 
+         *
          * - "SG_MUL_VAL_" is a literal string that indicates the start of the section.
          * - <msg_id> is an unsigned integer representing the message ID.
          * - <mux_sig_name> is the name of the multiplexed signal.
          * - <mux_switch_name> is the name of the multiplex switch.
          * - <val_range_1>,<val_range_2>,... is a comma-separated list of value ranges.
          * - The section ends with a semicolon (';').
-         * 
+         *
          * The parsed information is stored in the following variables:
          * - has_sect: A boolean indicating the presence of the section.
          * - msg_id: The message ID.
          * - mux_sig_name: The name of the multiplexed signal.
          * - mux_switch_name: The name of the multiplex switch.
          * - val_ranges: A list of value ranges.
-         * 
+         *
          * The parser uses Boost.Spirit.X3 for parsing and expects to be used with the
          * boost::spirit::x3::phrase_parse function.
          */
