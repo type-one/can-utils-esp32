@@ -1092,19 +1092,19 @@ namespace can
         // Parse VERSION section
         if (std::tie(pv, expected) = parse_version(pv, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in VERSION section)");
         }
 
         // Parse NS_ section
         if (std::tie(pv, expected) = parse_ns_(pv); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in NS_ section)");
         }
 
         // Parse BS_ section
         if (std::tie(pv, expected) = parse_bs_(pv); !expected)
         {
-            return syntax_error(dbc_src, pv, "(expected correct BS_)");
+            return syntax_error(dbc_src, pv, "(in BS_ section: expected correct BS_)");
         }
 
         nodes_t nodes;
@@ -1112,7 +1112,7 @@ namespace can
         // Parse BU_ section
         if (std::tie(pv, expected) = parse_bu_(pv, nodes, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv, "(expected correct BU_)");
+            return syntax_error(dbc_src, pv, "(in BU_ section: expected correct BU_)");
         }
 
         nodes_t val_tables;
@@ -1120,55 +1120,55 @@ namespace can
         // Parse VAL_TABLE_ section
         if (std::tie(pv, expected) = parse_val_table_(pv, val_tables, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in VAL_TABLE_ section)");
         }
 
         // Parse BO_ section
         if (std::tie(pv, expected) = parse_bo_(pv, nodes, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in BO_ section)");
         }
 
         // Parse BO_TX_BU_ section
         if (std::tie(pv, expected) = parse_bo_tx_bu(pv, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in BO_TX_BU_ section)");
         }
 
         // Parse EV_ section
         if (std::tie(pv, expected) = parse_ev_(pv, nodes, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in EV_ section)");
         }
 
         // Parse ENVVAR_DATA_ section
         if (std::tie(pv, expected) = parse_envvar_data_(pv, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in ENVVAR_DATA_ section)");
         }
 
         // Parse VAL_ section
         if (std::tie(pv, expected) = parse_val_(pv, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in VAL_ section)");
         }
 
         // Parse SGTYPE_ section
         if (std::tie(pv, expected) = parse_sgtype_(pv, val_tables, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in SGTYPE_ section)");
         }
 
         // Parse SIG_GROUP_ section
         if (std::tie(pv, expected) = parse_sig_group_(pv, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in SIG_GROUP_ section)");
         }
 
         // Parse CM_ section
         if (std::tie(pv, expected) = parse_cm_(pv, nodes, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in CM_ section)");
         }
 
         attr_types_t attr_types;
@@ -1176,37 +1176,37 @@ namespace can
         // Parse BA_DEF_ section
         if (std::tie(pv, expected) = parse_ba_def_(pv, attr_types, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in BA_DEF_ section)");
         }
 
         // Parse BA_DEF_DEF_ section
         if (std::tie(pv, expected) = parse_ba_def_def_(pv, attr_types, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in BA_DEF_DEF_ section)");
         }
 
         // Parse BA_ section
         if (std::tie(pv, expected) = parse_ba_(pv, nodes, attr_types, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in BA_ section)");
         }
 
         // Parse VAL_ section again
         if (std::tie(pv, expected) = parse_val_(pv, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in VAL_ section)");
         }
 
         // Parse SIG_VALTYPE_ section
         if (std::tie(pv, expected) = parse_sig_valtype_(pv, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in SIG_VALTYPE_ section)");
         }
 
         // Parse SG_MUL_VAL_ section
         if (std::tie(pv, expected) = parse_sg_mul_val_(pv, ipt); !expected)
         {
-            return syntax_error(dbc_src, pv);
+            return syntax_error(dbc_src, pv, "(in SG_MUL_VAL_ section)");
         }
 
         // Check for any remaining unparsed content
