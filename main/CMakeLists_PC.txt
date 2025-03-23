@@ -456,7 +456,8 @@ enable_testing()
 
 # Add your test files here
 set(TEST_SOURCES
-    tests/test_dummy.cpp
+    tests/test_can_codec.cpp
+    tests/test_dbc_parser.cpp
     # Add more test files as needed
 )
 
