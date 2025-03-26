@@ -1,5 +1,5 @@
-ESP32 Port: C++ CAN utilities, including fully compliant CAN DBC C++ parser
-===============================================================
+ESP32 Port: C++20 CAN utilities, including fully compliant CAN DBC C++ parser
+==============================================================================
 
 Original made by MIREO
 

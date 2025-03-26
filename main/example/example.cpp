@@ -73,6 +73,7 @@
 #include <sdkconfig.h>
 #endif
 
+#include "can/frame_packet.hpp"
 #include "dbc/dbc_parser.hpp"
 #include "v2c/v2c_transcoder.hpp"
 

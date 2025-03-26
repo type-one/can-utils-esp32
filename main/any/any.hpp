@@ -94,6 +94,7 @@ class any_copyable_function;
 */
 
 #include "tag_invoke.hpp"
+#include <concepts>
 #include <memory>
 #include <type_traits>
 
@@ -640,7 +641,7 @@ namespace mireo
             {
                 static constexpr vtable v { vtable_entry<CPOs>::template create<T>()... };
                 return &v;
-            };
+            }
 
             template <typename CPO>
             constexpr auto get() const noexcept -> typename vtable_entry<CPO>::fn_t*

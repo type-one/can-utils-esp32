@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 
@@ -85,7 +86,7 @@ namespace can
         void prepare(std::uint64_t utc)
         {
             _buff.resize(0);
-            _buff.reserve(32 * 1024);
+            // _buff.reserve(32 * 1024);
 
             // DBC version
             constexpr std::uint16_t dbc_version = 100;
@@ -96,7 +97,10 @@ namespace can
 
         std::uint64_t utc() const
         {
-            return *(const std::uint64_t*)(_buff.data() + utc_offset);
+            // unaligned access
+            std::uint64_t tmp = 0;
+            std::memcpy(&tmp, reinterpret_cast<const std::uint8_t*>(_buff.data()) + utc_offset, sizeof(std::uint64_t));
+            return tmp;
         }
 
         bool empty() const
